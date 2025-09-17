@@ -36,7 +36,10 @@ const clientSchema = z.object({
 
   country_id: z.number()
     .int()
-    .min(1, 'Debe proporcionar un ID de país válido y mayor que 0').optional()
+    .min(1, 'Debe proporcionar un ID de país válido y mayor que 0').optional(),
+  company_id : z.number()
+    .int()
+    .min(1, 'Debe proporcionar un ID de compañía válido y mayor que 0'),
 }).strict(); // ← impide campos no definidos
 
 module.exports = clientSchema;

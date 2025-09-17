@@ -1,18 +1,22 @@
 // controllers/clientController.js
 
 const express = require('express');
-const OdooService = require('../services/accounting.service');
+const OdooService = require('../services/client.service');
+const OdooConnector = require('../util/odooConector.util');
 const { validateClientId } = require('../middleware/validateParams.middleware');
 const { validateBody } = require('../middleware/validateBody.middleware');
 const updateClientSchema = require('../schemas/clientUpdate.schema');
 const clientSchema = require('../schemas/client.schema');
+const CompanyService = require('../services/company.service');
 const router = express.Router();
-const odooService = new OdooService();
+const odooConnector = new OdooConnector();
+const odooService = new OdooService(odooConnector);
+const companyService = new CompanyService(odooConnector);
 
 // Ruta para obtener la lista de clientes
-router.get('/clients', async (req, res) => {
+router.get('/clients/:id', async (req, res) => {
     try {
-        const clients = await odooService.getClients(); 
+        const clients = await odooService.getClients(req.params.id); 
         res.status(200).json({ clients });
     } catch (error) {
         console.error('Error al obtener clientes:', error.message);
@@ -21,7 +25,7 @@ router.get('/clients', async (req, res) => {
 });
 
 // Ruta para obtener un cliente
-router.get('/clients/:id', validateClientId, async (req, res) => {
+router.get('/GetOneclients/:id', validateClientId, async (req, res) => {
     try {
         const client = await odooService.getOneClient(req.params.id);
         res.status(200).json({ client });
@@ -42,11 +46,12 @@ router.get('/clients/:id', validateClientId, async (req, res) => {
 // Ruta para crear a un cliente
 router.post('/createClients', validateBody(clientSchema), async (req, res) => {
     try {
-        const client = await odooService.createClients(req.body); 
+        const client = await odooService.createClientWithCompanyValidation(req.body, companyService);
         res.status(200).json(client);
     } catch (error) {
         console.error('Error al crear el cliente:', error.message);
-        res.status(500).json({ error: error.message });
+        const status = error.status || 500;
+        res.status(status).json({ error: error.message });
     }
 });
 

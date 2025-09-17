@@ -4,24 +4,32 @@ const OdooConnector = require('../util/odooConector.util.js');
 const clientSchema = require('../schemas/client.schema.js')
 const updateClientSchema = require('../schemas/clientUpdate.schema.js')
 const z = require('zod')
+const CompanyService = require('./company.service');
 
+/**
+ * @class
+ * @param {OdooConnector} connector - Instancia de OdooConnector
+ */
 class OdooService {
-    constructor() {
-        this.connector = new OdooConnector();
+    /**
+     * @param {OdooConnector} connector
+     */
+    constructor(connector) {
+        /** @type {OdooConnector} */
+        this.connector = connector;
     }
 
-    async getClients() {
+    async getClients(id) {
         try {
             // Iniciar sesión en Odoo
             const loggedIn = await this.connector.login();
             if (!loggedIn) {
-                // Si no se puede conectar a Odoo, lanzamos un error 503 (Service Unavailable)
                 throw new Error('No se pudo conectar a Odoo');
             }
 
             // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
-            const domain = [['customer_rank', '>', 0]];  // Filtro para obtener solo los clientes
-            const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id']; // Campos que deseas traer
+            const domain = [['customer_rank', '>', 0], ['company_id', '=', id]];  // Filtro para obtener solo los clientes
+            const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
 
             // Realizamos la consulta a Odoo
             const clients = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
@@ -162,6 +170,23 @@ class OdooService {
         }
 
         return result;
+    }
+
+    /**
+     * Crea un cliente validando primero si la compañía existe
+     * @param {Object} novoCliente
+     * @param {CompanyService} companyService
+     */
+    async createClientWithCompanyValidation(novoCliente, companyService) {
+        const companyId = novoCliente.company_id;
+        if (!companyId) {
+            throw { status: 400, message: 'Falta el campo company_id' };
+        }
+        const exists = await companyService.companyExists(companyId);
+        if (!exists) {
+            throw { status: 404, message: 'La compañía especificada no existe' };
+        }
+        return this.createClients(novoCliente);
     }
 }
 

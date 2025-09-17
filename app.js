@@ -3,7 +3,7 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 const OdooConnector = require('./src/util/odooConector.util.js');
-const clientController = require('./src/controllers/accounting.controller.js');
+const clientController = require('./src/controllers/client.controller.js');
 const { errorHandler } = require('./src/middleware/errorHandler.middelware.js');
 
 // Create the async function to start the application
