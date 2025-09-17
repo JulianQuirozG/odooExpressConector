@@ -1,0 +1,11 @@
+# Dependencias y archivos a ignorar
+node_modules/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+coverage/
+dist/
+.env.*
