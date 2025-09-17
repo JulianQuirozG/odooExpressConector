@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # OdooExpress
 
 OdooExpress es un proyecto Node.js que proporciona una API para interactuar con Odoo, enfocada en la gestión contable y de clientes.
@@ -76,3 +77,6 @@ MIT
   - Validaciones de datos con Zod y middlewares personalizados, para validación de id y del body.
   - Uso de `executeQuery` para interactuar con el modelo `res.partner` de Odoo.
   - Manejo de errores y respuestas HTTP adecuadas.
+=======
+# odooExpressConector
+>>>>>>> 2f9e309d2d4771471a8e442cb92356c5df40b549
