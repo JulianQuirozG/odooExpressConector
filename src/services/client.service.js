@@ -5,12 +5,13 @@ const clientSchema = require('../schemas/client.schema.js')
 const updateClientSchema = require('../schemas/clientUpdate.schema.js')
 const z = require('zod')
 const CompanyService = require('./company.service');
+const { isNumber } = require('class-validator');
 
 /**
  * @class
  * @param {OdooConnector} connector - Instancia de OdooConnector
  */
-class OdooService {
+class ClientService {
     /**
      * @param {OdooConnector} connector
      */
@@ -19,7 +20,7 @@ class OdooService {
         this.connector = connector;
     }
 
-    async getClients(id) {
+    async getClients(company_id) {
         try {
             // Iniciar sesión en Odoo
             const loggedIn = await this.connector.login();
@@ -28,14 +29,17 @@ class OdooService {
             }
 
             // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
-            const domain = [['customer_rank', '>', 0], ['company_id', '=', id]];  // Filtro para obtener solo los clientes
+            let domain = [['customer_rank', '>', 0]];  // Filtro para obtener solo los clientes
+
+            if (!isNaN(company_id) && company_id > 0) {
+                domain.push(['company_id', '=', Number(company_id)]);
+            }
             const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
 
             // Realizamos la consulta a Odoo
             const clients = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
-
             // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
-            if (!clients || clients.length === 0) {
+            if (!clients) {
                 throw new Error('No hay clientes registrados en el sistema');
             }
 
@@ -58,7 +62,7 @@ class OdooService {
         }
     }
 
-    async getOneClient(id) {
+    async getOneClient(id, company_id ) {
         // Iniciar sesión en Odoo
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
@@ -66,15 +70,20 @@ class OdooService {
         }
 
         // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
-        const domain = [['customer_rank', '>', 0], ["id", "=", id]];  // Filtro para obtener solo los clientes
-        const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id']; // Campos que deseas traer
+        let domain = [['customer_rank', '>', 0], ["id", "=", Number(id)]];
+        if (company_id && isNaN(company_id)) {
+            domain.push(['company_id', '=', Number(company_id)]);
+        }  
+        
 
+        const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
+        console.log('Dominio usado:', domain);
         try {
             // Realizamos la consulta a Odoo
             const clients = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
-
+            console.log(clients);
             // Si no se encuentran clientes, devolvemos un error
-            if (clients.length === 0) {
+            if (!clients || clients.length === 0) {
                 throw new Error('Cliente no encontrado');
             }
 
@@ -82,12 +91,7 @@ class OdooService {
             return clients[0];  // Asumiendo que el ID es único, se retorna el primer cliente
         } catch (error) {
             // Propagar el error si es necesario
-            throw new Error(`
-                
-                
-                
-                
-                ${error.message}`);
+            throw new Error(`${error.message}`);
         }
     }
 
@@ -110,60 +114,55 @@ class OdooService {
         return clients;
     }
 
-    async updateClients(id, novoCliente) {
+    async updateClients(id, novoCliente, companyId) {
         try {
-            updateClientSchema.parse(novoCliente);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                const formattedErrors = error.issues.map(e => ({
-                    field: e.path.join('.'),
-                    message: e.message
-                }));
-                const validationError = new Error('Errores de validación');
-                validationError.details = formattedErrors;
-                throw validationError;
+            // Verificamos la sesión
+            const loggedIn = await this.connector.login();
+            if (!loggedIn) {
+                throw new Error('No se pudo conectar a Odoo');
             }
-            throw error;
+            //console.log('Datos a actualizar:', novoCliente);
+
+            // Validar que el cliente existe
+            const client = await this.getOneClient(id, companyId);
+            if (!client) {
+                throw new Error('Cliente no encontrado o no es un cliente válido');
+            }
+
+            console.log('Cliente encontrado para actualizar:', client);
+
+            // Intentar realizar la actualización
+            const result = await this.connector.executeQuery('res.partner', 'write', [["id", "=", Number(id)], novoCliente]);
+
+            if (!result) {
+                throw new Error('Error al actualizar el cliente en Odoo');
+            }
+
+            return result;
+        } catch (error) {
+            // Manejar errores específicos de Odoo
+            if (error.message && error.message.includes('Record does not exist or has been deleted')) {
+                throw new Error('El cliente no existe o ha sido eliminado en Odoo');
+            }
+
+            console.error('Error al actualizar el cliente:', error);
+            throw error; // Propagar otros errores
         }
-
-        const loggedIn = await this.connector.login();
-        if (!loggedIn) {
-            throw new Error('No se pudo conectar a Odoo');
-        }
-        console.log('Datos a actualizar:', novoCliente);
-
-        const ids = await this.getOneClient(id);
-
-        if (!ids.length || ids.length <= 0) {
-            throw new Error('Cliente no encontrado o no es un cliente válido');
-        }
-
-        const result = await this.connector.executeQuery('res.partner', 'write', [[id], novoCliente]);
-
-        if (!result) {
-            throw new Error('Error al actualizar el cliente en Odoo');
-        }
-
-        return result;
     }
 
-    async deleteClient(id) {
+    async deleteClient(id, company_id) {
+        // Verificamos la sesión    
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
             throw new Error('No se pudo conectar a Odoo');
         }
 
-        // Verificamos que el cliente existe y es válido
-        const domain = [['customer_rank', '>', 0], ['id', '=', id]];
-
-        const ids = await this.getOneClient(id);
-
-        if (!ids.length || ids.length <= 0) {
+        const ids = await this.getOneClient(Number(id), Number(company_id));
+        if (!ids) {
             throw new Error('Cliente no encontrado o no es un cliente válido');
         }
-
         // En vez de eliminar, actualizamos el campo 'active' a false para archivar
-        const result = await this.connector.executeQuery('res.partner', 'write', [ids, { active: false }]);
+        const result = await this.connector.executeQuery('res.partner', 'write', [[ids.id], { active: false }]);
 
         if (!result) {
             throw new Error('Error al archivar el cliente');
@@ -174,20 +173,30 @@ class OdooService {
 
     /**
      * Crea un cliente validando primero si la compañía existe
-     * @param {Object} novoCliente
-     * @param {CompanyService} companyService
+     * @param {string} id - ID del cliente a actualizar
+     * @param {Object} novoCliente - Datos del cliente
+     * @param {CompanyService} companyService - Servicio para validar compañías
      */
-    async createClientWithCompanyValidation(novoCliente, companyService) {
+    async updateClientWithCompanyValidation(id, companyIdSearch, novoCliente, companyService) {
         const companyId = novoCliente.company_id;
-        if (!companyId) {
-            throw { status: 400, message: 'Falta el campo company_id' };
+
+        if (companyId) {
+            try {
+                const exists = await companyService.companyExists(companyId);
+                if (!exists) {
+                    throw { status: 404, message: 'La compañía especificada no existe' };
+                }
+            } catch (error) {
+                console.error('Error al validar la compañía:', error);
+                throw new Error('Error al validar la compañía');
+            }
         }
-        const exists = await companyService.companyExists(companyId);
-        if (!exists) {
-            throw { status: 404, message: 'La compañía especificada no existe' };
-        }
-        return this.createClients(novoCliente);
+
+        // Si la compañía es válida o no se proporcionó, procedemos a crear el cliente  
+
+        return this.updateClients(id, novoCliente, companyIdSearch);
     }
+
 }
 
-module.exports = OdooService;
+module.exports = ClientService;

@@ -19,8 +19,8 @@ const clientSchema = z.object({
     .min(7, 'El teléfono debe tener al menos 7 dígitos').optional(),
 
   vat: z.string().regex(nitRegex, {
-  message: 'El NIT debe tener un formato válido (ejemplo: 900123456-7)'
-}).optional(),
+    message: 'El NIT debe tener un formato válido (ejemplo: 900123456-7)'
+  }).optional(),
 
   email: z.email({ message: 'Debe proporcionar un correo electrónico válido' }).optional(),
 
@@ -37,9 +37,9 @@ const clientSchema = z.object({
   country_id: z.number()
     .int()
     .min(1, 'Debe proporcionar un ID de país válido y mayor que 0').optional(),
-  company_id : z.number()
+  company_id: z.number()
     .int()
-    .min(1, 'Debe proporcionar un ID de compañía válido y mayor que 0'),
+    .min(1, 'Debe proporcionar un ID de compañía válido y mayor que 0').optional(),
 }).strict(); // ← impide campos no definidos
 
 module.exports = clientSchema;

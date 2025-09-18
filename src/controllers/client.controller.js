@@ -8,15 +8,17 @@ const { validateBody } = require('../middleware/validateBody.middleware');
 const updateClientSchema = require('../schemas/clientUpdate.schema');
 const clientSchema = require('../schemas/client.schema');
 const CompanyService = require('../services/company.service');
+const { validateQueryCompanyId } = require('../middleware/validateQueryCompanyId.middleware');
+const { validateCompanyExists } = require('../middleware/validateCompanyExist');
 const router = express.Router();
 const odooConnector = new OdooConnector();
 const odooService = new OdooService(odooConnector);
 const companyService = new CompanyService(odooConnector);
 
 // Ruta para obtener la lista de clientes
-router.get('/clients/:id', async (req, res) => {
+router.get('/clients', validateCompanyExists, async (req, res) => {
     try {
-        const clients = await odooService.getClients(req.params.id); 
+        const clients = await odooService.getClients(req.query.company_id); 
         res.status(200).json({ clients });
     } catch (error) {
         console.error('Error al obtener clientes:', error.message);
@@ -25,9 +27,9 @@ router.get('/clients/:id', async (req, res) => {
 });
 
 // Ruta para obtener un cliente
-router.get('/GetOneclients/:id', validateClientId, async (req, res) => {
+router.get('/GetOneclients/:id', validateClientId,validateCompanyExists, async (req, res) => {
     try {
-        const client = await odooService.getOneClient(req.params.id);
+        const client = await odooService.getOneClient(req.params.id,req.query.company_id);
         res.status(200).json({ client });
     } catch (error) {
         console.error('Error al obtener cliente:', error.message);
@@ -44,9 +46,9 @@ router.get('/GetOneclients/:id', validateClientId, async (req, res) => {
 
 
 // Ruta para crear a un cliente
-router.post('/createClients', validateBody(clientSchema), async (req, res) => {
+router.post('/createClients', async (req, res) => {
     try {
-        const client = await odooService.createClientWithCompanyValidation(req.body, companyService);
+        const client = await odooService.createClients(req.body, companyService);
         res.status(200).json(client);
     } catch (error) {
         console.error('Error al crear el cliente:', error.message);
@@ -59,7 +61,7 @@ router.post('/createClients', validateBody(clientSchema), async (req, res) => {
 router.patch('/updateClient/:id',validateClientId, validateBody(updateClientSchema), async (req, res) => {
   try {
     // Usar la función para actualizar cliente
-    const updatedClient = await odooService.updateClients(req.params.id, req.body);
+    const updatedClient = await odooService.updateClientWithCompanyValidation(req.params.id, req.query.company_id, req.body, companyService);
     res.status(200).json({ success: true, data: updatedClient });
   } catch (error) {
     console.error('Error al actualizar el cliente:', error);
@@ -73,12 +75,12 @@ router.patch('/updateClient/:id',validateClientId, validateBody(updateClientSche
   }
 });
 
-router.delete('/deleteClients/:id',validateClientId, async (req, res) => {
+router.delete('/deleteClients/:id',validateClientId, validateCompanyExists, async (req, res) => {
     try {
-        const clients = await odooService.deleteClient(req.params.id); 
+        const clients = await odooService.deleteClient(req.params.id, req.query.company_id); 
         res.status(200).json({ clients });
     } catch (error) {
-        console.error('Error al obtener clientes:', error.message);
+        console.error('Error al eliminar el cliente:', error.message);
         res.status(500).json({ error: error.message });
     }
 });

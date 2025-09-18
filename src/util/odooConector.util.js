@@ -16,6 +16,9 @@ class OdooConnector {
     }
 
     async login() {
+        if(this.session.uid) {
+            return true; // Ya estamos logueados
+        }
         const url = `${this.odooUrl}/jsonrpc`;
         const payload = {
             jsonrpc: "2.0",
@@ -29,7 +32,7 @@ class OdooConnector {
                     this.password
                 ]
             },
-            id:2
+            
         };
         try {
             //console.log("1")
@@ -73,7 +76,7 @@ class OdooConnector {
         };
 
         try {
-            console.log(this.session.cookies)
+            console.log(args);
             const response = await client.post(url, payload, {
                 headers: {
                     'Cookie': this.session.cookies

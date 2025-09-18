@@ -4,6 +4,9 @@ const app = express();
 const port = 3000;
 const OdooConnector = require('./src/util/odooConector.util.js');
 const clientController = require('./src/controllers/client.controller.js');
+const bankAccountController = require('./src/controllers/bankAccounts.controller.js');
+const bankController = require('./src/controllers/banks.controller.js');
+const externalApiController = require('./src/controllers/externalApi.comtroller.js');
 const { errorHandler } = require('./src/middleware/errorHandler.middelware.js');
 
 // Create the async function to start the application
@@ -18,6 +21,9 @@ async function startServer() {
         });
 
         app.use('/api', clientController);
+        app.use('/api', bankAccountController);
+        app.use('/api', bankController);
+        app.use('/api', externalApiController);
 
         app.use(errorHandler);
 
