@@ -21,7 +21,7 @@ class BankService {
         }
         // bankData debe tener name, bic, etc.
         const existingBanks = await this.searchBanksByNameIlike(bankData.name);
-        console.log(existingBanks);
+        console.log("existingBanks:", existingBanks);
         if (existingBanks.length > 0) {
             throw new Error('El banco ya existe');
         }

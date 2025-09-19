@@ -1,4 +1,4 @@
-const CompanyService = require('../services/company.service');
+const CompanyService = require('../helpers/company.service');
 const OdooConnector = require('../util/odooConector.util');
 
 const connector = new OdooConnector();

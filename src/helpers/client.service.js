@@ -4,7 +4,7 @@ const OdooConnector = require('../util/odooConector.util.js');
 const clientSchema = require('../schemas/client.schema.js')
 const updateClientSchema = require('../schemas/clientUpdate.schema.js')
 const z = require('zod')
-const CompanyService = require('./company.service');
+const CompanyService = require('../helpers/company.service.js');
 const { isNumber } = require('class-validator');
 
 /**
@@ -62,7 +62,7 @@ class ClientService {
         }
     }
 
-    async getOneClient(id, company_id ) {
+    async getOneClient(id, company_id) {
         // Iniciar sesión en Odoo
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
@@ -73,8 +73,8 @@ class ClientService {
         let domain = [['customer_rank', '>', 0], ["id", "=", Number(id)]];
         if (company_id && isNaN(company_id)) {
             domain.push(['company_id', '=', Number(company_id)]);
-        }  
-        
+        }
+
 
         const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
         console.log('Dominio usado:', domain);
@@ -195,6 +195,81 @@ class ClientService {
         // Si la compañía es válida o no se proporcionó, procedemos a crear el cliente  
 
         return this.updateClients(id, novoCliente, companyIdSearch);
+    }
+
+    async getProviders(company_id) {
+        try {
+            // Iniciar sesión en Odoo
+            const loggedIn = await this.connector.login();
+            if (!loggedIn) {
+                throw new Error('No se pudo conectar a Odoo');
+            }
+
+            // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
+            let domain = [['supplier_rank', '>', 0]];  // Filtro para obtener solo los proveedores
+
+            if (!isNaN(company_id) && company_id > 0) {
+                domain.push(['company_id', '=', Number(company_id)]);
+            }
+            const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
+
+            // Realizamos la consulta a Odoo
+            const clients = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
+            // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
+            if (!clients) {
+                throw new Error('No hay clientes registrados en el sistema');
+            }
+
+            // Retornamos la lista de clientes
+            return clients;
+        } catch (error) {
+            // Aquí manejamos los posibles errores
+            if (error.message === 'No se pudo conectar a Odoo') {
+                // Error al conectar con el servicio externo (Odoo), responder con 503
+                throw { status: 503, message: error.message };
+            }
+
+            if (error.message === 'No hay clientes registrados en el sistema') {
+                // No hay clientes registrados, responder con 404
+                throw { status: 404, message: error.message };
+            }
+
+            // Si es un error no esperado, responder con 500 (Internal Server Error)
+            throw { status: 500, message: 'Error interno al procesar la solicitud' };
+        }
+    }
+
+    async getOneProvider(id, company_id) {
+        // Iniciar sesión en Odoo
+        const loggedIn = await this.connector.login();
+        if (!loggedIn) {
+            throw new Error('No se pudo conectar a Odoo');
+        }
+
+        // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
+        let domain = [['supplier_rank', '>', 0], ["id", "=", Number(id)]];
+        if (company_id && isNaN(company_id)) {
+            domain.push(['company_id', '=', Number(company_id)]);
+        }
+
+
+        const fields = ['id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile', 'email', 'website', 'lang', 'category_id', 'company_id']; // Campos que deseas traer
+        console.log('Dominio usado:', domain);
+        try {
+            // Realizamos la consulta a Odoo
+            const clients = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
+            console.log(clients);
+            // Si no se encuentran clientes, devolvemos un error
+            if (!clients || clients.length === 0) {
+                throw new Error('Cliente no encontrado');
+            }
+
+            // Retornamos el cliente encontrado
+            return clients[0];  // Asumiendo que el ID es único, se retorna el primer cliente
+        } catch (error) {
+            // Propagar el error si es necesario
+            throw new Error(`${error.message}`);
+        }
     }
 
 }

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const OdooConnector = require('../util/odooConector.util');
-const ExternalApiService = require('../services/externalApi/externalApi.service');
-const BankAccountService = require('../services/BankAccountService');
-const BankService = require('../services/bank.service');
-const ClientService = require('../services/client.service');
+const ExternalApiService = require('../services/externalApi.service');
+const BankAccountService = require('../helpers/BankAccount.service');
+const BankService = require('../helpers/bank.service');
+const ClientService = require('../helpers/client.service');
 const connector = new OdooConnector();
 const clientService = new ClientService(connector);
 const bankService = new BankService(connector);
@@ -12,14 +12,109 @@ const bankAccountService = new BankAccountService(connector);
 const externalApiService = new ExternalApiService(clientService, bankService, bankAccountService);
 
 // Crear cliente con cuentas bancarias
-router.post('/create-client-with-bank-accounts', async (req, res) => {
-    try {
-        const result = await externalApiService.createClientWithBankAccount(req.body);
-        res.status(201).json(result);
-    } catch (error) {
-        console.error('Error en externalApi:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
+const externalApiController = {
 
-module.exports = router;
+    createClientWithBankAccounts: async (req, res) => {
+        try {
+            const result = await externalApiService.createClientWithBankAccount(req.body);
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error en externalApi:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createProvider: async (req, res) => {
+        try {
+            const result = await externalApiService.createProvider(req.body);
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error al crear proveedor:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getClients: async (req, res) => {
+        try {
+            const clients = await clientService.getClients(req.query.company_id);
+            res.status(200).json({ clients });
+        } catch (error) {
+            console.error('Error al obtener clientes:', error.message);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getOneClient: async (req, res) => {
+        try {
+            const client = await clientService.getOneClient(req.params.id, req.query.company_id);
+            res.status(200).json({ client });
+        } catch (error) {
+            console.error('Error al obtener cliente:', error.message);
+            if (error.message === 'Cliente no encontrado') {
+                return res.status(404).json({ message: error.message });
+            }
+            res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
+    },
+
+    createClient: async (req, res) => {
+        try {
+            const client = await clientService.createClients(req.body);
+            res.status(200).json(client);
+        } catch (error) {
+            console.error('Error al crear el cliente:', error.message);
+            const status = error.status || 500;
+            res.status(status).json({ error: error.message });
+        }
+    },
+
+    updateClient: async (req, res) => {
+        try {
+            const updatedClient = await clientService.updateClientWithCompanyValidation(
+                req.params.id, req.query.company_id, req.body
+            );
+            res.status(200).json({ success: true, data: updatedClient });
+        } catch (error) {
+            console.error('Error al actualizar el cliente:', error);
+            if (error.details) {
+                return res.status(400).json({ error: 'Errores de validación', details: error.details });
+            }
+            res.status(500).json({ error: error.message || 'Error interno del servidor' });
+        }
+    },
+
+    deleteClient: async (req, res) => {
+        try {
+            const clients = await clientService.deleteClient(req.params.id, req.query.company_id);
+            res.status(200).json({ clients });
+        } catch (error) {
+            console.error('Error al eliminar el cliente:', error.message);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createBank: async (req, res) => {
+        try {
+            const bankData = req.body;
+            const newBank = await bankService.createBank(bankData);
+            res.status(201).json({ bank: newBank });
+        } catch (error) {
+            console.error('Error al crear el banco:', error.message);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createAccountBank: async (req, res) => {
+        try {
+            const bankData = req.body;
+            const newBank = await bankAccountService.createBankAccount(bankData);
+            res.status(201).json({ bank: newBank });
+        } catch (error) {
+            console.error('Error al crear la cuenta bancaria:', error.message);
+            res.status(500).json({ error: error.message });
+        }
+    }
+};
+module.exports = {
+    externalApiController
+};

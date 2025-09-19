@@ -17,8 +17,8 @@ class BankAccountService {
             throw new Error('No se pudo conectar a Odoo');
         }
 
-        const bank = await this.bankService.searchBanksByName(bankAccountData.bank_name);
-        if (bank.length === 0) {
+        const bank = await this.bankService.getBankById(bankAccountData.bank_id);
+        if (!bank) {
             await this.bankService.createBank({ name: bankAccountData.bank_name });
         }
 

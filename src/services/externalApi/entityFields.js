@@ -14,8 +14,16 @@ const BANK_ACCOUNT_FIELDS = [
     // ...otros campos de cuenta bancaria
 ];
 
+const PROVIDER_FIELDS = [
+    "name", "is_company", "company_type", "lang", "mobile", "phone", "vat", "email",
+    "street","street2", "zip","country_id","supplier_rank", "company_id", "website",
+    "parent_id",
+    // ...otros campos de cliente
+];
+
 module.exports = {
     CLIENT_FIELDS,
     BANK_FIELDS,
-    BANK_ACCOUNT_FIELDS
+    BANK_ACCOUNT_FIELDS,
+    PROVIDER_FIELDS
 };
