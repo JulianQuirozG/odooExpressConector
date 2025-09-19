@@ -2,29 +2,36 @@ const OdooConnector = require("../util/odooConector.util");
 const ClientService = require("../helpers/client.service");
 const BankService = require("../helpers/bank.service");
 const BankAccountService = require("../helpers/BankAccount.service");
+const BillService = require("../helpers/bill.service");
 const {
   CLIENT_FIELDS,
-  BANK_FIELDS,
   BANK_ACCOUNT_FIELDS,
   PROVIDER_FIELDS,
-} = require("./externalApi/entityFields");
+  PRODUCT_FIELDS,
+  BILL_FIELDS,
+  INVOICE_LINE_FIELDS,
+} = require("./fields/entityFields");
 const { pickFields } = require("../util/object.util");
 class ExternalApiService {
   /**
    * @param {ClientService} clientService
    * @param {BankService} bankService
    * @param {BankAccountService} bankAccountService
+   * @param {ProductService} productService
+   * @param {BillService} billService
    */
-  constructor(clientService, bankService, bankAccountService) {
+  constructor(clientService, bankService, bankAccountService, productService, billService) {
     this.clientService = clientService;
     this.bankService = bankService;
     this.bankAccountService = bankAccountService;
+    this.productService = productService;
+    this.billService = billService;
   }
 
   async createClientWithBankAccount(data) {
     try {
       // 1  Crear un cliente
-      const clientId = await this.clientService.createClients(
+      const clientId = await this.clientService.createPartner(
         pickFields(data, CLIENT_FIELDS)
       );
 
@@ -82,15 +89,10 @@ class ExternalApiService {
       );
     }
   }
-  
-  /**
-   * 
-   * @param {*} data 
-   * @returns 
-   */
+
   async createProvider(data) {
     try {
-      const providerId = await this.clientService.createClients(
+      const providerId = await this.clientService.createPartner(
         pickFields(data, PROVIDER_FIELDS)
       );
 
@@ -101,20 +103,56 @@ class ExternalApiService {
       throw new Error(`Error al crear proveedor: ${error.message}`);
     }
   }
-  /** 
-  
-  async createAccountClient(data) {
+
+  async updatePartner(id, newData) {
     try {
-      const clientId = await this.clientService.createClients(
-        pickFields(data, CLIENT_FIELDS)
+      const updatedClient = await this.clientService.updateClients(
+        id,
+        pickFields(newData, CLIENT_FIELDS)
       );
-      return { client_id: clientId };
+
+      const partner = await this.clientService.getOneClient(updatedClient.id);
+
+      return partner;
     } catch (error) {
-      throw new Error(`Error al crear cliente: ${error.message}`);
+      throw new Error(`Error al actualizar cliente: ${error.message}`);
     }
   }
 
-  
+  async editBankAccount(id, newData, type) {
+    try {
+      if (type == "add") {
+        const bank = await this.bankService.getBankById(newData.bank_id);
+
+        if (!bank) {
+          await this.bankService.createBank({ name: newData.bank_name });
+        }
+
+        const bankAccountData = pickFields(newData, BANK_ACCOUNT_FIELDS);
+        bankAccountData.partner_id = Number(id);
+        bankAccountData.bank_id = Number(bank.id);
+        bankAccountData.bank_name = bank.name;
+
+        const updatedAccount = await this.bankAccountService.createBankAccount(
+          bankAccountData
+        );
+
+        return updatedAccount;
+      } else if (type == "delete") {
+
+        const partner = await this.clientService.getOneClient(id);
+
+        if (!partner) {
+          throw new Error('Cliente no encontrado o no es un cliente válido');
+        }
+
+        const deleted = await this.bankAccountService.deleteBankAccount(newData.id);
+        return { deleted };
+      }
+    } catch (error) {
+      throw new Error(`Error al actualizar cuenta bancaria: ${error.message}`);
+    }
+  }
 
   async createProduct(data) {
     try {
@@ -126,8 +164,37 @@ class ExternalApiService {
       throw new Error(`Error al crear producto: ${error.message}`);
     }
   }
-*/
-  // Puedes agregar más métodos que combinen lógica de varios servicios aquí
+
+  async createBill(data) {
+    try {
+      const billId = await this.billService.createBill(pickFields(data, BILL_FIELDS ));
+
+      if( data.invoice_line_ids?.length > 0 ){
+        for(const line of data.invoice_line_ids){
+          await this.billService.addProductToBill(billId.id, pickFields(line, INVOICE_LINE_FIELDS));
+        }
+      }
+
+      return { data: billId };
+    } catch (error) {
+      throw new Error(`Error al crear factura: ${error.message}`);
+    }
+  }
+
+  async editRowToBill(billId, rowData, action) {
+    try {
+      let result;
+      if (action === "add") {
+        result = await this.billService.addProductToBill(billId, rowData);
+      } else if (action === "delete") {
+        result = await this.billService.deleteProductFromBill(billId, rowData.id);
+      }
+      return result;
+    } catch (error) {
+      throw new Error(`Error al editar fila de la factura: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = ExternalApiService;

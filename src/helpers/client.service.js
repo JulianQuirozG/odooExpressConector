@@ -95,7 +95,7 @@ class ClientService {
         }
     }
 
-    async createClients(novoCliente) {
+    async createPartner(novoCliente) {
 
         //verificamos la session
         const loggedIn = await this.connector.login();
@@ -269,6 +269,47 @@ class ClientService {
         } catch (error) {
             // Propagar el error si es necesario
             throw new Error(`${error.message}`);
+        }
+    }
+
+    async getPartners(company_id, type) {
+        try {
+            const loggedIn = await this.connector.login();
+            if (!loggedIn) {
+                throw new Error('No se pudo conectar a Odoo');
+            }
+
+            let domain = [];
+            if (type === 'customer') {
+                domain.push(['customer_rank', '>', 0]);
+            } else if (type === 'supplier') {
+                domain.push(['supplier_rank', '>', 0]);
+            } else if (type === 'both') {
+                domain.push(['|', ['customer_rank', '>', 0], ['supplier_rank', '>', 0]]);
+            }
+
+            if (!isNaN(company_id) && company_id > 0) {
+                domain.push(['company_id', '=', Number(company_id)]);
+            }
+
+            const fields = [
+                'id', 'name', 'vat', 'street', 'city', 'country_id', 'phone', 'mobile',
+                'email', 'website', 'lang', 'category_id', 'company_id'
+            ];
+
+            const partners = await this.connector.executeQuery('res.partner', 'search_read', [domain], { fields });
+            if (!partners) {
+                throw new Error('No hay registros en el sistema');
+            }
+            return partners;
+        } catch (error) {
+            if (error.message === 'No se pudo conectar a Odoo') {
+                throw { status: 503, message: error.message };
+            }
+            if (error.message === 'No hay registros en el sistema') {
+                throw { status: 404, message: error.message };
+            }
+            throw { status: 500, message: 'Error interno al procesar la solicitud' };
         }
     }
 

@@ -42,7 +42,7 @@ class BankService {
         const domain = [['id', '=', Number(bankId)]];
         const fields = ['id', 'name', 'bic', 'active'];
         const banks = await this.connector.executeQuery('res.bank', 'search_read', [domain], { fields });
-        if (!banks || banks.length === 0) {
+        if (!banks) {
             throw new Error('Banco no encontrado');
         }
         return banks[0];

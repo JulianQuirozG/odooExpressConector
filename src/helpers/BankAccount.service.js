@@ -21,13 +21,31 @@ class BankAccountService {
         if (!bank) {
             await this.bankService.createBank({ name: bankAccountData.bank_name });
         }
-
+        console.log("Bank for account:", bank);
+        console.log("Bank Account Data:", bankAccountData);
         // bankAccountData debe tener acc_number, bank_id, partner_id, company_id, etc.
         const result = await this.connector.executeQuery('res.partner.bank', 'create', [bankAccountData]);
         if (!result) {
             throw new Error('Error al crear la cuenta bancaria');
         }
         return result;
+    }
+
+    async deleteBankAccount(bankAccountId) {
+        const loggedIn = await this.connector.login();
+        if (!loggedIn) {
+            throw new Error('No se pudo conectar a Odoo');
+        }
+        try {
+            const result = await this.connector.executeQuery('res.partner.bank', 'write', [[bankAccountId], { active: false }]);
+            if (!result) {
+                throw new Error('Error al eliminar la cuenta bancaria');
+            }
+            return result;
+        } catch (error) {
+            console.error('Error al eliminar la cuenta bancaria:', error);
+            throw error;
+        }
     }
 }
 

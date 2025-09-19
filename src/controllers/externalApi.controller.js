@@ -5,11 +5,16 @@ const ExternalApiService = require('../services/externalApi.service');
 const BankAccountService = require('../helpers/BankAccount.service');
 const BankService = require('../helpers/bank.service');
 const ClientService = require('../helpers/client.service');
+const ProductService = require('../helpers/product.service');
+const BillService = require('../helpers/bill.service');
 const connector = new OdooConnector();
 const clientService = new ClientService(connector);
+const productService = new ProductService(connector);
 const bankService = new BankService(connector);
 const bankAccountService = new BankAccountService(connector);
-const externalApiService = new ExternalApiService(clientService, bankService, bankAccountService);
+const billService = new BillService(connector);
+// Instancia del servicio externo
+const externalApiService = new ExternalApiService(clientService, bankService, bankAccountService, productService, billService);
 
 // Crear cliente con cuentas bancarias
 const externalApiController = {
@@ -32,6 +37,76 @@ const externalApiController = {
             console.error('Error al crear proveedor:', error);
             res.status(500).json({ error: error.message });
         }
+    },
+
+    createProduct: async (req, res) => {
+        try {
+            const result = await externalApiService.createProduct(req.body);
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error al crear producto:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createBill: async (req, res) => {
+        try {
+            const result = await externalApiService.createBill(req.body);
+            res.status(201).json(result);
+        } catch (error) {
+            console.error('Error al crear factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    addRowToBill: async (req, res) => {
+        try {
+            const result = await externalApiService.editRowToBill(req.params.id, req.body, "add");
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error al agregar fila a la factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    deleteRowFromBill: async (req, res) => {
+        try {
+            const result = await externalApiService.editRowToBill(req.params.id, req.body, "delete");
+            res.status(200).json(result);
+        } catch (error) {   
+            console.error('Error al eliminar fila de la factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getBillById: async (req, res) => {
+        try {
+            const result = await billService.getBillById(req.params.id);
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error al obtener factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    addBankAccount: async (req, res) => {
+        try {
+            const result = await externalApiService.editBankAccount(req.params.id, req.body, "add");       
+            res.status(200).json(result);
+        } catch (error) {   
+            console.error('Error al editar cuenta bancaria:', error);
+            res.status(500).json({ error: error.message });
+        }       
+    },
+
+    deleteBankAccount: async (req, res) => {
+        try {
+            const result = await externalApiService.editBankAccount(req.params.id, req.body, "delete");       
+            res.status(200).json(result);
+        } catch (error) {   
+            console.error('Error al editar cuenta bancaria:', error);
+            res.status(500).json({ error: error.message });
+        }       
     },
 
     getClients: async (req, res) => {
@@ -59,7 +134,7 @@ const externalApiController = {
 
     createClient: async (req, res) => {
         try {
-            const client = await clientService.createClients(req.body);
+            const client = await clientService.createPartner(req.body);
             res.status(200).json(client);
         } catch (error) {
             console.error('Error al crear el cliente:', error.message);
