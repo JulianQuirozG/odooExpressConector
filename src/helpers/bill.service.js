@@ -133,6 +133,35 @@ class BillService {
     }
   }
 
+  async confirmBill(billId) {
+    //verificamos la session
+    try {
+      const loggedIn = await this.connector.login();
+      if (!loggedIn) {
+        throw new Error("No se pudo conectar a Odoo");
+      }
+      
+      const confirmedBill = await this.connector.executeQuery(
+        "account.move",
+        "action_post",
+        [Number(billId)],
+        {}
+      );
+
+      if (!confirmedBill) {
+        throw new Error("Error al confirmar la factura");
+      }
+
+      const confirmedBillDetails = await this.getBillById(billId);
+      if (!confirmedBillDetails) {
+        throw new Error("Error al obtener los detalles de la factura confirmada");
+      }
+      return confirmedBillDetails;
+    } catch (error) {
+      throw new Error(`Error al confirmar la factura: ${error.message}`);
+    }
+  }
+
   /**Falta implementar
     async deleteBill(billId) {
         //verificamos la session

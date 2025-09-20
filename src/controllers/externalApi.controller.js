@@ -83,10 +83,20 @@ const externalApiController = {
 
     getBillById: async (req, res) => {
         try {
-            const result = await billService.getBillById(req.params.id);
+            const result = await externalApiService.getBillById(req.params.id);
             res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al obtener factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    confirmBill: async (req, res) => {
+        try {
+            const result = await externalApiService.confirmBill(req.params.id);
+            res.status(200).json({ status: 200, data: result });
+        } catch (error) {
+            console.error('Error al confirmar factura:', error);
             res.status(500).json({ error: error.message });
         }
     },

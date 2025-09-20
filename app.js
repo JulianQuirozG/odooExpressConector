@@ -13,15 +13,11 @@ async function startServer() {
     try {
         app.use(express.json());
 
-        app.get('/', (req, res) => {
-            res.send('Conectado al odooExpresjs');
-        });
-
         app.use('/api', externalApiRoutes);
 
         app.use(errorHandler);
 
-        // --- Start the server ---
+        // --- Start the server --- //
         app.listen(port, () => {
             console.log(`Example app listening on port ${port}`);
         });
@@ -29,9 +25,8 @@ async function startServer() {
     } catch (error) {
         console.error('Failed to connect to Odoo. Shutting down the server.');
         console.error(error);
-        process.exit(1); // Exit with an error code
+        process.exit(1);
     }
 }
 
-// Call the function to start everything
 startServer();

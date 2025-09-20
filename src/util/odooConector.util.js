@@ -35,13 +35,10 @@ class OdooConnector {
             
         };
         try {
-            //console.log("1")
             const response = await client.post(url, payload);
             
             if (response.data && response.data.result) {
                 this.session.uid = response.data.result;
-
-                //console.log('Login exitoso. UID:', this.session.uid);
                 return true;
             }
         } catch (error) {

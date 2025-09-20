@@ -198,9 +198,36 @@ class ExternalApiService {
         }
       }
 
-      return { data: billId };
+      const bill = await this.billService.getBillById(billId.id);
+
+      return { data: bill };
     } catch (error) {
       throw new Error(`Error al crear factura: ${error.message}`);
+    }
+  }
+
+  async getBillById(billId) {
+    try {
+      const bill = await this.billService.getBillById(billId);
+      if (!bill) {
+        throw new Error("La factura no existe");
+      }
+      return bill;
+    } catch (error) {
+      throw new Error(`Error al obtener la factura: ${error.message}`);
+    }
+  }
+
+  async confirmBill(billId) {
+    try {
+      const bill = await this.billService.getBillById(billId);
+      if (!bill) {
+        throw new Error("La factura no existe");
+      }
+      const result = await this.billService.confirmBill(billId);
+      return result;
+    } catch (error) {
+      throw new Error(`Error al confirmar la factura: ${error.message}`);
     }
   }
 
