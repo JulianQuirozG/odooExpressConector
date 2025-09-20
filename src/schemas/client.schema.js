@@ -32,8 +32,10 @@ const clientSchema = z.object({
 
   customer_rank: z.number()
     .int()
-    .min(1, 'El rango del cliente debe ser al menos 1').optional(),
-
+    .min(0, 'El rango del cliente debe ser al menos 0 ').optional(),
+  supplier_rank: z.number()
+    .int()
+    .min(0, 'El rango del proveedor debe ser al menos 0').optional(),
   country_id: z.number()
     .int()
     .min(1, 'Debe proporcionar un ID de país válido y mayor que 0').optional(),

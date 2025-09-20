@@ -1,8 +1,9 @@
 const CLIENT_FIELDS = [
     "name", "is_company", "company_type", "lang", "mobile", "phone", "vat", "email",
-    "street", "city", "customer_rank", "country_id", "company_id"
+    "street", "city",  "zip","customer_rank", "country_id", "company_id","website","parent_id"
     // ...otros campos de cliente
 ];
+
 
 const BANK_FIELDS = [
     "bank_name", "bic"
@@ -17,7 +18,7 @@ const BANK_ACCOUNT_FIELDS = [
 const PROVIDER_FIELDS = [
     "name", "is_company", "company_type", "lang", "mobile", "phone", "vat", "email",
     "street","street2", "zip","country_id","supplier_rank", "company_id", "website",
-    "parent_id",
+    "parent_id"
     // ...otros campos de proveedor
 ];
 

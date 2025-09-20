@@ -11,14 +11,15 @@ router.post('/create-product', externalApiController.createProduct);
 router.put('/add-bank-account/:id', externalApiController.addBankAccount);
 router.put('/delete-bank-account/:id', externalApiController.deleteBankAccount);
 router.post('/create-bill', externalApiController.createBill);
-router.post('/add-product-to-bill/:id', externalApiController.addRowToBill);
-router.post('/delete-product-from-bill/:id', externalApiController.deleteRowFromBill);
+router.put('/add-product-to-bill/:id', externalApiController.addRowToBill);
+router.delete('/delete-product-from-bill/:id', externalApiController.deleteRowFromBill);
 
 // Rutas de pruebas
 router.get('/clients', externalApiController.getClients);
+router.get('/providers', externalApiController.getProviders);
 router.get('/GetOneclients/:id', externalApiController.getOneClient);
 router.post('/createClients', externalApiController.createClient);
-router.patch('/updateClient/:id', externalApiController.updateClient);
+router.put('/updateClient/:id', externalApiController.updateClient);
 router.delete('/deleteClients/:id', externalApiController.deleteClient);
 router.post('/createBank', externalApiController.createBank);
 router.post('/createAccountBank', externalApiController.createAccountBank);

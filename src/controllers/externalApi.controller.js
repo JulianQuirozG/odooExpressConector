@@ -7,12 +7,14 @@ const BankService = require('../helpers/bank.service');
 const ClientService = require('../helpers/client.service');
 const ProductService = require('../helpers/product.service');
 const BillService = require('../helpers/bill.service');
+const CompanyService = require('../helpers/company.service');
 const connector = new OdooConnector();
 const clientService = new ClientService(connector);
 const productService = new ProductService(connector);
 const bankService = new BankService(connector);
 const bankAccountService = new BankAccountService(connector);
 const billService = new BillService(connector);
+const companyService = new CompanyService(connector);
 // Instancia del servicio externo
 const externalApiService = new ExternalApiService(clientService, bankService, bankAccountService, productService, billService);
 
@@ -21,8 +23,8 @@ const externalApiController = {
 
     createClientWithBankAccounts: async (req, res) => {
         try {
-            const result = await externalApiService.createClientWithBankAccount(req.body);
-            res.status(201).json(result);
+            const result = await externalApiService.createClientWithBankAccount(req.body, 'client');
+            res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error en externalApi:', error);
             res.status(500).json({ error: error.message });
@@ -31,8 +33,8 @@ const externalApiController = {
 
     createProvider: async (req, res) => {
         try {
-            const result = await externalApiService.createProvider(req.body);
-            res.status(201).json(result);
+            const result = await externalApiService.createClientWithBankAccount(req.body, 'provider');
+            res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear proveedor:', error);
             res.status(500).json({ error: error.message });
@@ -42,7 +44,7 @@ const externalApiController = {
     createProduct: async (req, res) => {
         try {
             const result = await externalApiService.createProduct(req.body);
-            res.status(201).json(result);
+            res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear producto:', error);
             res.status(500).json({ error: error.message });
@@ -82,7 +84,7 @@ const externalApiController = {
     getBillById: async (req, res) => {
         try {
             const result = await billService.getBillById(req.params.id);
-            res.status(200).json(result);
+            res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al obtener factura:', error);
             res.status(500).json({ error: error.message });
@@ -111,11 +113,21 @@ const externalApiController = {
 
     getClients: async (req, res) => {
         try {
-            const clients = await clientService.getClients(req.query.company_id);
-            res.status(200).json({ clients });
+            const clients = await clientService.getClients(req.query.company_id, "client");
+            res.status(200).json({ status: 200, data: clients });
         } catch (error) {
             console.error('Error al obtener clientes:', error.message);
-            res.status(500).json({ error: error.message });
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
+    getProviders: async (req, res) => {
+        try {
+            const partner = await clientService.getClients(req.query.company_id, "provider");
+            res.status(200).json({ status: 200, data: partner });
+        } catch (error) {
+            console.error('Error al obtener proveedores:', error.message);
+            return res.status(500).json({  error: error.message });
         }
     },
 
@@ -146,7 +158,7 @@ const externalApiController = {
     updateClient: async (req, res) => {
         try {
             const updatedClient = await clientService.updateClientWithCompanyValidation(
-                req.params.id, req.query.company_id, req.body
+                req.params.id, req.query.company_id, req.body, companyService
             );
             res.status(200).json({ success: true, data: updatedClient });
         } catch (error) {
@@ -161,7 +173,7 @@ const externalApiController = {
     deleteClient: async (req, res) => {
         try {
             const clients = await clientService.deleteClient(req.params.id, req.query.company_id);
-            res.status(200).json({ clients });
+            res.status(200).json({ success: 200, data: clients });
         } catch (error) {
             console.error('Error al eliminar el cliente:', error.message);
             res.status(500).json({ error: error.message });
