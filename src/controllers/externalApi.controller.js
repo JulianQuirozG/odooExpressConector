@@ -54,9 +54,19 @@ const externalApiController = {
     createBill: async (req, res) => {
         try {
             const result = await externalApiService.createBill(req.body);
-            res.status(201).json(result);
+            res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear factura:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    updateBill: async (req, res) => {
+        try {
+            const result = await externalApiService.updateBill(req.params.id, req.body);
+            res.status(200).json({ status: 200, data: result });
+        } catch (error) {
+            console.error('Error al actualizar la factura:', error);
             res.status(500).json({ error: error.message });
         }
     },
@@ -64,7 +74,7 @@ const externalApiController = {
     addRowToBill: async (req, res) => {
         try {
             const result = await externalApiService.editRowToBill(req.params.id, req.body, "add");
-            res.status(200).json(result);
+            res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al agregar fila a la factura:', error);
             res.status(500).json({ error: error.message });
@@ -74,7 +84,7 @@ const externalApiController = {
     deleteRowFromBill: async (req, res) => {
         try {
             const result = await externalApiService.editRowToBill(req.params.id, req.body, "delete");
-            res.status(200).json(result);
+            res.status(204).json({ status: 204, data: result });
         } catch (error) {   
             console.error('Error al eliminar fila de la factura:', error);
             res.status(500).json({ error: error.message });
@@ -103,9 +113,9 @@ const externalApiController = {
 
     addBankAccount: async (req, res) => {
         try {
-            const result = await externalApiService.editBankAccount(req.params.id, req.body, "add");       
-            res.status(200).json(result);
-        } catch (error) {   
+            const result = await externalApiService.editBankAccount(req.params.id, req.body, "add");
+            res.status(200).json({ status: 200, data: result });
+        } catch (error) {
             console.error('Error al editar cuenta bancaria:', error);
             res.status(500).json({ error: error.message });
         }       

@@ -1,5 +1,18 @@
 const { z } = require('zod');
 const nitRegex = /^\d{7,10}(-\d)?$/;
+
+const bankSchema = z.object({
+  bank_name: z.string(),
+  bic: z.string()
+});
+
+const bankAccountSchema = z.object({
+  acc_number: z.string(),
+  currency_id: z.number(),
+  acc_holder_name: z.string(),
+  bank: bankSchema
+});
+
 const clientSchema = z.object({
   name: z.string()
     .min(1, 'El nombre no puede estar vacío'),
@@ -11,7 +24,16 @@ const clientSchema = z.object({
 
   lang: z.string()
     .regex(/^[a-z]{2}_[A-Z]{2}$/, 'El idioma debe tener el formato correcto (por ejemplo: es_CO)').optional(),
-
+  is_company: z.boolean().optional(),
+  bankAccounts: z.array(bankAccountSchema).optional(),
+  street2: z.string().optional(),
+  zip: z.string().optional(),
+  state_id: z.number().optional(),
+  website: z.string().optional(),
+  category_id: z.array(z.number()).optional(),
+  active: z.boolean().optional(),
+  function: z.string().optional(),
+  comment: z.string().optional(),
   mobile: z.string()
     .min(7, 'El número de celular debe tener al menos 7 dígitos').optional(),
 

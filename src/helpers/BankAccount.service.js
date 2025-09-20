@@ -47,6 +47,23 @@ class BankAccountService {
             throw error;
         }
     }
+
+    async getBankAccountByPartnerId(partnerId) {
+        const loggedIn = await this.connector.login();
+        if (!loggedIn) {
+            throw new Error('No se pudo conectar a Odoo');
+        }
+
+        try {
+            let result = [];
+            result = await this.connector.executeQuery('res.partner.bank', 'search_read', [[['partner_id', '=', Number(partnerId)]]],{ fields: ['id', 'acc_number', 'bank_id', 'bank_name', 'partner_id', 'company_id', 'active'] });
+            return result;
+        } catch (error) {
+            console.error('Error al obtener la cuenta bancaria:', error);
+            throw error;
+        }
+    }
+
 }
 
 module.exports = BankAccountService;

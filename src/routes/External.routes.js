@@ -5,24 +5,28 @@ const updateClientSchema = require('../schemas/clientUpdate.schema');
 const clientSchema = require('../schemas/client.schema');
 const productSchema = require('../schemas/product.schema');
 const { validateBody } = require('../middleware/validateBody.middleware');
+const billSchema = require('../schemas/bill.schema');
+const billUpdateSchema = require('../schemas/billUpdate.schema');
 
 // Ruta para crear cliente con cuentas bancarias
-router.post('/create-client-with-bank-accounts', externalApiController.createClientWithBankAccounts);
-router.post('/create-provider', externalApiController.createProvider);
-router.post('/create-product', externalApiController.createProduct);
+router.post('/create-client-with-bank-accounts', validateBody(clientSchema), externalApiController.createClientWithBankAccounts);
+router.post('/create-provider', validateBody(clientSchema), externalApiController.createProvider);
+router.post('/create-product', validateBody(productSchema), externalApiController.createProduct);
 router.put('/add-bank-account/:id', externalApiController.addBankAccount);
 router.put('/delete-bank-account/:id', externalApiController.deleteBankAccount);
-router.post('/create-bill', externalApiController.createBill);
+router.post('/create-bill', validateBody(billSchema), externalApiController.createBill);
 router.put('/add-product-to-bill/:id', externalApiController.addRowToBill);
 router.put('/delete-product-from-bill/:id', externalApiController.deleteRowFromBill);
 // Rutas de confirmación de facturas
 router.put('/confirm-bill/:id', externalApiController.confirmBill);
 
 // Rutas de pruebas
+router.put('/update-bill/:id', validateBody(billUpdateSchema), externalApiController.updateBill);
 router.get('/clients', externalApiController.getClients);
+router.get('/providers', externalApiController.getProviders);
 router.get('/GetOneclients/:id', externalApiController.getOneClient);
 router.post('/createClients', externalApiController.createClient);
-router.put('/updateClient/:id', externalApiController.updateClient);
+router.put('/updateClient/:id', validateBody(updateClientSchema), externalApiController.updateClient);
 router.delete('/deleteClients/:id', externalApiController.deleteClient);
 router.post('/createBank', externalApiController.createBank);
 router.post('/createAccountBank', externalApiController.createAccountBank);

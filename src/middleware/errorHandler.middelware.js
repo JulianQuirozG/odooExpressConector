@@ -18,9 +18,8 @@ const errorHandler = (err, req, res, next) => {
     // Si el error es un tipo común de Error, lo manejamos
     if (err instanceof Error) {
         // Enviar detalles del error solo si no estamos en producción
-        if (process.env.NODE_ENV !== 'production') {
-            console.error(err.stack);
-        }
+        console.error(err.stack);
+        
 
         return res.status(statusCode).json({
             message: err.message || 'Ha ocurrido un error en el servidor',

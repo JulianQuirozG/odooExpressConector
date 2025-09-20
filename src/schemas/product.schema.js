@@ -12,6 +12,6 @@ const productSchema = z.object({
     purchase_ok: z.boolean().optional(),
     description: z.string().optional(),
     company_id: z.number().optional()
-});
+}).strict(); // ← impide campos no definidos
 
 module.exports = productSchema;

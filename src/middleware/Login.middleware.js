@@ -9,7 +9,7 @@ function jwtAuth(req, res, next) {
         return res.status(401).json({ error: 'Token no proporcionado' });
     }
 
-    jwt.verify(token, config.jwtSecret, (err, user) => {
+    jwt.verify(token, config.odoo.secret, (err, user) => {
         if (err) {
             return res.status(403).json({ error: 'Token inválido o expirado' });
         }

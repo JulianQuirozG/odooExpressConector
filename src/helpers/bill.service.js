@@ -45,7 +45,7 @@ class BillService {
     //verificamos la session
   }
 
-  async getBillById(billId) {
+  async getBillById(billId, type) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -62,6 +62,12 @@ class BillService {
         "amount_total",
         "state",
       ];
+
+      if (type && type === "draft") {
+        domain.push(['state', '=', 'draft']);
+      } else if (type && type === "posted") {
+        domain.push(['state', '=', 'posted']);
+      }
       // Realizamos la consulta a Odoo
       bills = await this.connector.executeQuery(
         "account.move",
@@ -76,6 +82,32 @@ class BillService {
     }
   }
 
+  async updateBill(billId, updatedBill) {
+    //verificamos la session
+    try {
+      const loggedIn = await this.connector.login();
+      if (!loggedIn) {
+        throw new Error("No se pudo conectar a Odoo");
+      }
+      const bill = await this.getBillById(billId, "draft");
+      if (!bill) {
+        throw new Error("La factura no existe o no es un borrador");
+      }
+      // Realizamos la consulta a Odoo
+      const result = await this.connector.executeQuery(
+        "account.move",
+        "write",
+        [[Number(billId)], updatedBill],
+        {}
+      );
+      if (!result) {
+        throw new Error("Error al actualizar la factura");
+      }
+      return result;
+    } catch (error) {
+      throw new Error(`Error al actualizar la factura: ${error.message}`);
+    }
+  }
   async addProductToBill(billId, productLine) {
     //verificamos la session
     try {
@@ -140,23 +172,29 @@ class BillService {
       if (!loggedIn) {
         throw new Error("No se pudo conectar a Odoo");
       }
-      
-      const confirmedBill = await this.connector.executeQuery(
+
+      await this.connector.executeQuery(
         "account.move",
         "action_post",
         [Number(billId)],
         {}
       );
 
-      if (!confirmedBill) {
-        throw new Error("Error al confirmar la factura");
-      }
+      const [bill] = await this.connector.executeQuery(
+        'account.move',
+        'search_read',
+        [[['id', '=', billId]]],
+        { fields: ['id', 'state'] }
+      );
 
-      const confirmedBillDetails = await this.getBillById(billId);
-      if (!confirmedBillDetails) {
-        throw new Error("Error al obtener los detalles de la factura confirmada");
+      if (bill && bill.state === 'posted') {
+        // La factura está validada
+        const confirmedBillDetails = await this.getBillById(billId);
+        return confirmedBillDetails;
+      } else {
+        // No está validada
+        return false;
       }
-      return confirmedBillDetails;
     } catch (error) {
       throw new Error(`Error al confirmar la factura: ${error.message}`);
     }

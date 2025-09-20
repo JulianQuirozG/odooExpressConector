@@ -3,6 +3,7 @@ const axios = require('axios');
 const config = require('../config/config.js')
 const { wrapper } = require('axios-cookiejar-support');
 const tough = require('tough-cookie');
+const { ca } = require('zod/locales');
 const cookieJar = new tough.CookieJar();
 const client = wrapper(axios.create({ jar: cookieJar, withCredentials: true }));
 
@@ -15,8 +16,42 @@ class OdooConnector {
         this.session = {};
     }
 
+    async loggin(user) {
+        const { username, password, db } = user;
+
+        const url = `${this.odooUrl}/jsonrpc`;
+        const payload = {
+            jsonrpc: "2.0",
+            method: "call",
+            params: {
+                service: "common",
+                method: "login",
+                args: [
+                    db,
+                    username,
+                    password
+                ]
+            },
+
+        };
+        try {
+            const response = await client.post(url, payload);
+
+            if (response.data && response.data.result) {
+                this.session.uid = response.data.result;
+                user.uid = response.data.result;
+                const token = jwt.sign(user, config.jwtSecret, { expiresIn: '1h' });
+
+                return token;
+            }
+        } catch (error) {
+            console.error('Error de conexión o autenticación:', error.message);
+            return false;
+        }
+    }
+
     async login() {
-        if(this.session.uid) {
+        if (this.session.uid) {
             return true; // Ya estamos logueados
         }
         const url = `${this.odooUrl}/jsonrpc`;
@@ -32,11 +67,11 @@ class OdooConnector {
                     this.password
                 ]
             },
-            
+
         };
         try {
             const response = await client.post(url, payload);
-            
+
             if (response.data && response.data.result) {
                 this.session.uid = response.data.result;
                 return true;

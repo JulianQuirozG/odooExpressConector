@@ -9,7 +9,15 @@ const updateClientSchema = z.object({
     required_error: 'Debe especificar si es persona o empresa',
     invalid_type_error: 'Tipo de compañía inválido'
   }).optional(),
-
+  is_company: z.boolean().optional(),
+  street2: z.string().optional(),
+  zip: z.string().optional(),
+  state_id: z.number().optional(),
+  website: z.string().optional(),
+  category_id: z.array(z.number()).optional(),
+  active: z.boolean().optional(),
+  function: z.string().optional(),
+  comment: z.string().optional(),
   lang: z.string()
     .regex(/^[a-z]{2}_[A-Z]{2}$/, 'El idioma debe tener el formato correcto (por ejemplo: es_CO)').optional(),
 
@@ -37,9 +45,12 @@ const updateClientSchema = z.object({
   country_id: z.number()
     .int()
     .min(1, 'Debe proporcionar un ID de país válido y mayor que 0').optional(),
-    company_id : z.number()
+  company_id: z.number()
     .int()
     .min(1, 'Debe proporcionar un ID de compañía válido y mayor que 0').optional(),
+  supplier_rank: z.number()
+    .int()
+    .min(0, 'El rango del proveedor debe ser al menos 0').optional()
 }).strict();
 
 

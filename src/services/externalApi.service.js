@@ -104,6 +104,10 @@ class ExternalApiService {
 
   async updatePartner(id, newData) {
     try {
+      const client = await this.clientService.getOneClient(id);
+      if (!client) {
+        throw new Error("El cliente no existe o no es un cliente válido");
+      }
       const updatedClient = await this.clientService.updateClients(
         id,
         pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])])
@@ -128,15 +132,15 @@ class ExternalApiService {
           newData.bank_name
         );
 
-          let bankGet;
+        let bankGet;
         if (existingBanks?.length === 0) {
           bankGet = await this.bankService.createBank({ name: newData.bank_name });
-        }else{
+        } else {
           bankGet = existingBanks[0];
         }
         console.log("Bank found or created:", bankGet);
         const bank = await this.bankService.getBankById(bankGet.id);
-        
+
         const bankAccountData = pickFields(newData, BANK_ACCOUNT_FIELDS);
         bankAccountData.partner_id = Number(id);
         bankAccountData.bank_id = Number(bank.id);
@@ -146,7 +150,12 @@ class ExternalApiService {
           bankAccountData
         );
 
-        return updatedAccount;
+        if (!updatedAccount) {
+          throw new Error("Error al crear la cuenta bancaria");
+        }
+        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id);
+
+        return partnerAfter;
       } else if (type == "delete") {
         const partner = await this.clientService.getOneClient(id);
 
@@ -157,7 +166,11 @@ class ExternalApiService {
         const deleted = await this.bankAccountService.deleteBankAccount(
           newData.id
         );
-        return { deleted };
+        if (!deleted) {
+          throw new Error("La cuenta bancaria ya se encuentra archivada o no existe");
+        }
+        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id);
+        return partnerAfter;
       }
     } catch (error) {
       throw new Error(`Error al actualizar cuenta bancaria: ${error.message}`);
@@ -200,7 +213,7 @@ class ExternalApiService {
 
       const bill = await this.billService.getBillById(billId.id);
 
-      return { data: bill };
+      return bill;
     } catch (error) {
       throw new Error(`Error al crear factura: ${error.message}`);
     }
@@ -218,11 +231,54 @@ class ExternalApiService {
     }
   }
 
+  async updateBill(id, data) {
+    try {
+      const bill = await this.billService.getBillById(id, "draft");
+      if (!bill) {
+        throw new Error("La factura no existe o no es un borrador");
+      }
+      const updatedBill = await this.billService.updateBill(
+        id,
+        pickFields(data, BILL_FIELDS)
+      );
+
+      if (!updatedBill) {
+        throw new Error('No se pudo editar la factura. Verifica que esté en estado draft.');
+      }
+
+      if (data.invoice_line_ids?.length >= 0) {
+        // eliminamos todas las líneas actuales
+        if (bill.invoice_line_ids?.length > 0) {
+          
+          await Promise.all(bill.invoice_line_ids.map(async (line) => {
+            console.log("Deleting line:", line);
+            await this.billService.deleteProductFromBill(
+              id,
+              line
+            );
+          }));
+        }
+        await Promise.all(data.invoice_line_ids.map(async (line) => {
+          await this.billService.addProductToBill(
+            id,
+            pickFields(line, INVOICE_LINE_FIELDS)
+          );
+        }));
+      }
+
+      const billAfter = await this.billService.getBillById(id);
+
+      return billAfter;
+    } catch (error) {
+      throw new Error(`Error al actualizar la factura: ${error.message}`);
+    }
+  }
+
   async confirmBill(billId) {
     try {
-      const bill = await this.billService.getBillById(billId);
+      const bill = await this.billService.getBillById(billId, "draft");
       if (!bill) {
-        throw new Error("La factura no existe");
+        throw new Error("La factura no existe o no está en estado borrador");
       }
       const result = await this.billService.confirmBill(billId);
       return result;
