@@ -16,7 +16,7 @@ class BillService {
     this.connector = connector;
   }
 
-  async createBill(newBill) {
+  async createBill(newBill, user) {
     try {
       const loggedIn = await this.connector.login();
       if (!loggedIn) {
@@ -45,7 +45,7 @@ class BillService {
     //verificamos la session
   }
 
-  async getBillById(billId, type) {
+  async getBillById(billId, type, user) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -82,7 +82,7 @@ class BillService {
     }
   }
 
-  async updateBill(billId, updatedBill) {
+  async updateBill(billId, updatedBill, user) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -108,7 +108,7 @@ class BillService {
       throw new Error(`Error al actualizar la factura: ${error.message}`);
     }
   }
-  async addProductToBill(billId, productLine) {
+  async addProductToBill(billId, productLine , user) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -139,7 +139,7 @@ class BillService {
     }
   }
 
-  async deleteProductFromBill(billId, productLineId) {
+  async deleteProductFromBill(billId, productLineId, user) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -165,7 +165,7 @@ class BillService {
     }
   }
 
-  async confirmBill(billId) {
+  async confirmBill(billId, user) {
     //verificamos la session
     try {
       const loggedIn = await this.connector.login();
@@ -200,24 +200,6 @@ class BillService {
     }
   }
 
-  /**Falta implementar
-    async deleteBill(billId) {
-        //verificamos la session
-        const loggedIn = await this.connector.login();
-        if (!loggedIn) {
-            throw new Error('No se pudo conectar a Odoo');
-        }
-    
-        // Eliminamos la factura
-        const deletedBill = await this.connector.executeQuery('account.move', 'unlink', [billId], {});
-
-        if (!deletedBill) {
-            throw new Error('Error al eliminar la factura');
-        }
-
-        return deletedBill;
-    }
-        */
 }
 
 module.exports = BillService;

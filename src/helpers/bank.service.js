@@ -11,7 +11,7 @@ class BankService {
 
 
     // Crear un banco (res.bank)
-    async createBank(bankData) {
+    async createBank(bankData, user) {
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
             throw new Error('No se pudo conectar a Odoo');
@@ -34,7 +34,7 @@ class BankService {
     }
 
     // Buscar banco por ID
-    async getBankById(bankId) {
+    async getBankById(bankId, user) {
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
             throw new Error('No se pudo conectar a Odoo');
@@ -49,7 +49,7 @@ class BankService {
     }
 
     // Buscar bancos por nombre (parcial o exacto)
-    async searchBanksByName(name) {
+    async searchBanksByName(name, user) {
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
             throw new Error('No se pudo conectar a Odoo');
@@ -60,7 +60,7 @@ class BankService {
         return banks;
     }
 
-    async searchBanksByNameIlike(name) {
+    async searchBanksByNameIlike(name, user) {
         const loggedIn = await this.connector.login();
         if (!loggedIn) {
             throw new Error('No se pudo conectar a Odoo');

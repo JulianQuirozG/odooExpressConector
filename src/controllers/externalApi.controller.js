@@ -220,6 +220,16 @@ const externalApiController = {
             console.error('Error al crear la cuenta bancaria:', error.message);
             res.status(500).json({ error: error.message });
         }
+    },
+
+    login: async (req, res) => {
+        try {
+            const token = await connector.loginJWT(req.body);
+            return res.status(200).json({status:"200", token });
+        } catch (error) {
+            console.error('Error al iniciar sesión en Odoo:', error.message);
+            return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+        }
     }
 };
 module.exports = {

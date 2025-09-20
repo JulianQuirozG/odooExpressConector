@@ -50,7 +50,8 @@ class ExternalApiService {
 
       // 2. validar que los bancos existan o crearlos
       const results = [];
-
+      const bankAccounts = [];
+      const bankAccountInvalid = [];
       if (data.bankAccounts?.length > 0) {
         for (const account of data.bankAccounts) {
           // Buscar banco por nombre (bank_name)
@@ -78,14 +79,20 @@ class ExternalApiService {
           bankAccountData.bank_id = bank.id;
           bankAccountData.bank_name = bank.name;
           console.log("Creating bank account:", bankAccountData);
-          const bankAccountId = await this.bankAccountService.createBankAccount(
-            bankAccountData
-          );
-          results.push({
-            partner_id: clientId,
-            bank_id: bank.id,
-            bank_account_id: bankAccountId,
-          });
+
+          if (!bankAccounts.includes(bankAccountData.acc_number)) {
+            bankAccounts.push(bankAccountData.acc_number);
+            const bankAccountId = await this.bankAccountService.createBankAccount(
+              bankAccountData
+            );
+            results.push({
+              partner_id: clientId,
+              bank_id: bank.id,
+              bank_account_id: bankAccountId,
+            });
+          } else{
+            bankAccountInvalid.push(`La cuenta bancaria ${bankAccountData.acc_number} está duplicada en la solicitud y no fue creada.`);
+          }
         }
       }
       // 3. Retornar resultado
@@ -93,6 +100,7 @@ class ExternalApiService {
       return {
         partner,
         bankAccountResults: results,
+        bankAccountInvalid: bankAccountInvalid
       };
     } catch (error) {
       // Puedes personalizar el error o simplemente relanzarlo
@@ -108,6 +116,14 @@ class ExternalApiService {
       if (!client) {
         throw new Error("El cliente no existe o no es un cliente válido");
       }
+
+      if(newData.company_id){
+        const company = await this.companyService.getCompanyById(newData.company_id);
+        if(!company){
+          throw new Error("La compañía especificada no existe");
+        }
+      }
+
       const updatedClient = await this.clientService.updateClients(
         id,
         pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])])
@@ -201,19 +217,27 @@ class ExternalApiService {
       const billId = await this.billService.createBill(
         pickFields(data, BILL_FIELDS)
       );
-
+      let productsInvalid = [];
       if (data.invoice_line_ids?.length > 0) {
         for (const line of data.invoice_line_ids) {
-          await this.billService.addProductToBill(
-            billId.id,
-            pickFields(line, INVOICE_LINE_FIELDS)
-          );
+          const product = await this.productService.getProductById(line.product_id);
+          if (!product) {
+            productsInvalid.push([`El producto con ID ${line.product_id} no existe`]);
+          } else {
+            await this.billService.addProductToBill(
+              billId.id,
+              pickFields(line, INVOICE_LINE_FIELDS)
+            );
+          }
+
         }
       }
-
+      let message = '';
       const bill = await this.billService.getBillById(billId.id);
-
-      return bill;
+      if (productsInvalid.length > 0) {
+        message = `La facura se creo correctamente, pero hay algunos productos que no existian: ${productsInvalid.flat().join('; ')}`;
+      }
+      return { message, bill };
     } catch (error) {
       throw new Error(`Error al crear factura: ${error.message}`);
     }
@@ -245,11 +269,11 @@ class ExternalApiService {
       if (!updatedBill) {
         throw new Error('No se pudo editar la factura. Verifica que esté en estado draft.');
       }
-
+      let productsInvalid = [];
       if (data.invoice_line_ids?.length >= 0) {
         // eliminamos todas las líneas actuales
         if (bill.invoice_line_ids?.length > 0) {
-          
+
           await Promise.all(bill.invoice_line_ids.map(async (line) => {
             console.log("Deleting line:", line);
             await this.billService.deleteProductFromBill(
@@ -258,17 +282,24 @@ class ExternalApiService {
             );
           }));
         }
+        
         await Promise.all(data.invoice_line_ids.map(async (line) => {
-          await this.billService.addProductToBill(
-            id,
-            pickFields(line, INVOICE_LINE_FIELDS)
-          );
+          if (await this.productService.getProductById(line.product_id)) {
+            await this.billService.addProductToBill(
+              id,
+              pickFields(line, INVOICE_LINE_FIELDS)
+            );
+          }
+          else {
+            productsInvalid.push([`El producto con ID ${line.product_id} no existe`]);
+          }
+          
         }));
       }
 
       const billAfter = await this.billService.getBillById(id);
 
-      return billAfter;
+      return { billAfter, productsInvalid };
     } catch (error) {
       throw new Error(`Error al actualizar la factura: ${error.message}`);
     }

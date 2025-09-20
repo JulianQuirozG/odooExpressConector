@@ -6,6 +6,7 @@ const config = {
     db: process.env.ODOO_DB || `OdooExpressTest`,
     username: process.env.ODOO_USER || `Administrator`,
     password: process.env.ODOO_PASSWORD || `53427c288d3419fff9daa815793977dc717db9aa`,
+    secret: process.env.JWT_SECRET || 'OdooExpressSecretKey'
   },
 };
 

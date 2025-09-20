@@ -1,9 +1,10 @@
 // odoo-connector.js
 const axios = require('axios');
 const config = require('../config/config.js')
+const jwt = require('jsonwebtoken');
 const { wrapper } = require('axios-cookiejar-support');
 const tough = require('tough-cookie');
-const { ca } = require('zod/locales');
+const { ca, th } = require('zod/locales');
 const cookieJar = new tough.CookieJar();
 const client = wrapper(axios.create({ jar: cookieJar, withCredentials: true }));
 
@@ -16,9 +17,30 @@ class OdooConnector {
         this.session = {};
     }
 
-    async loggin(user) {
+    async loginJWT(user) {
         const { username, password, db } = user;
+        try {
+            if (!username || !password || !db) {
+                throw new Error('Las credenciales están incompletas.');
+            }
 
+            const response = await this.loginOdoo(username, password, db);
+            console.log(response);
+            if (!response) {
+                throw new Error('Credenciales inválidas.');
+            }
+
+            // Generar el token JWT
+            const payloadd = { username, db, uid: response, password }
+            const token = jwt.sign(payloadd, config.odoo.secret, { expiresIn: '4h' });
+            return token;
+        } catch (error) {
+            console.error('Error de conexión o autenticación:', error.message);
+            throw new Error(error.message);
+        }
+    }
+
+    async loginOdoo(username, password, db) {
         const url = `${this.odooUrl}/jsonrpc`;
         const payload = {
             jsonrpc: "2.0",
@@ -36,17 +58,15 @@ class OdooConnector {
         };
         try {
             const response = await client.post(url, payload);
-
-            if (response.data && response.data.result) {
-                this.session.uid = response.data.result;
-                user.uid = response.data.result;
-                const token = jwt.sign(user, config.jwtSecret, { expiresIn: '1h' });
-
-                return token;
+            console.log(response.data);
+            if (!response.data || !response.data.result) {
+                console.error('Credenciales inválidas.');
+                throw new Error('Credenciales inválidas.');
             }
+            return response.data.result;
         } catch (error) {
             console.error('Error de conexión o autenticación:', error.message);
-            return false;
+            throw new Error(error.message);
         }
     }
 
@@ -84,6 +104,7 @@ class OdooConnector {
 
     async executeQuery(model, method, args = [], kwargs = {}) {
         if (!this.session.uid) {
+            await this.login();
             console.error('No hay una sesión activa. Por favor, inicie sesión primero.');
             return null;
         }

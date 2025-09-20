@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/config.js');
 
-function jwtAuth(req, res, next) {
+const jwtAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Espera formato: Bearer <token>
+    const token = authHeader && authHeader.split(' ')[1]; //Bearer <token>
 
     if (!token) {
         return res.status(401).json({ error: 'Token no proporcionado' });
@@ -18,4 +18,4 @@ function jwtAuth(req, res, next) {
     });
 }
 
-module.exports = jwtAuth;
+module.exports = {jwtAuth};

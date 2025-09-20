@@ -155,8 +155,7 @@ class ClientService {
       if (!loggedIn) {
         throw new Error("No se pudo conectar a Odoo");
       }
-      console.log('ID del cliente a actualizar:', id);
-      console.log('Datos a actualizar:', novoCliente);
+
 
       // Validar que el cliente existe
 
