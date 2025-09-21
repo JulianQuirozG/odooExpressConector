@@ -20,13 +20,13 @@ class BankService {
             throw new Error('Los datos del banco son obligatorios');
         }
         // bankData debe tener name, bic, etc.
-        const existingBanks = await this.searchBanksByNameIlike(bankData.name);
+        const existingBanks = await this.searchBanksByNameIlike(bankData.name,user);
         console.log("existingBanks:", existingBanks);
         if (existingBanks.length > 0) {
             throw new Error('El banco ya existe');
         }
 
-        const result = await this.connector.executeQuery('res.bank', 'create', [bankData]);
+        const result = await this.connector.executeQuery(user,'res.bank', 'create', [bankData]);
         if (!result) {
             throw new Error('Error al crear el banco');
         }
@@ -41,7 +41,7 @@ class BankService {
         }
         const domain = [['id', '=', Number(bankId)]];
         const fields = ['id', 'name', 'bic', 'active'];
-        const banks = await this.connector.executeQuery('res.bank', 'search_read', [domain], { fields });
+        const banks = await this.connector.executeQuery(user,'res.bank', 'search_read', [domain], { fields });
         if (!banks) {
             throw new Error('Banco no encontrado');
         }
@@ -56,7 +56,7 @@ class BankService {
         }
         const domain = [['name', '=', name]];
         const fields = ['id', 'name', 'bic', 'active'];
-        const banks = await this.connector.executeQuery('res.bank', 'search_read', [domain], { fields });
+        const banks = await this.connector.executeQuery(user,'res.bank', 'search_read', [domain], { fields });
         return banks;
     }
 
@@ -67,7 +67,7 @@ class BankService {
         }
         const domain = [['name', 'ilike', name]];
         const fields = ['id', 'name', 'bic', 'active'];
-        const banks = await this.connector.executeQuery('res.bank', 'search_read', [domain], { fields });
+        const banks = await this.connector.executeQuery(user,'res.bank', 'search_read', [domain], { fields });
         return banks;
     }
 }

@@ -35,7 +35,7 @@ class ExternalApiService {
     this.billService = billService;
   }
 
-  async createClientWithBankAccount(data, type) {
+  async createClientWithBankAccount(data, type,user) {
     try {
       // 1  Crear un cliente o proveedor
       let fields = CLIENT_FIELDS;
@@ -45,7 +45,7 @@ class ExternalApiService {
         fields = [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])];
       }
       const clientId = await this.clientService.createPartner(
-        pickFields(data, fields)
+        pickFields(data, fields),user
       );
 
       // 2. validar que los bancos existan o crearlos
@@ -56,7 +56,7 @@ class ExternalApiService {
         for (const account of data.bankAccounts) {
           // Buscar banco por nombre (bank_name)
           const banks = await this.bankService.searchBanksByNameIlike(
-            account.bank?.bank_name
+            account.bank?.bank_name,user
           );
 
           let bank = [];
@@ -66,7 +66,7 @@ class ExternalApiService {
 
             const bankId = await this.bankService.createBank({
               name: account.bank?.bank_name,
-            });
+            },user);
 
             bank = { id: bankId };
           } else {
@@ -83,7 +83,7 @@ class ExternalApiService {
           if (!bankAccounts.includes(bankAccountData.acc_number)) {
             bankAccounts.push(bankAccountData.acc_number);
             const bankAccountId = await this.bankAccountService.createBankAccount(
-              bankAccountData
+              bankAccountData,user
             );
             results.push({
               partner_id: clientId,
@@ -96,7 +96,7 @@ class ExternalApiService {
         }
       }
       // 3. Retornar resultado
-      const partner = await this.clientService.getOneClient(clientId);
+      const partner = await this.clientService.getOneClient(clientId,undefined,undefined,user);
       return {
         partner,
         bankAccountResults: results,
@@ -110,15 +110,15 @@ class ExternalApiService {
     }
   }
 
-  async updatePartner(id, newData) {
+  async updatePartner(id, newData,user) {
     try {
-      const client = await this.clientService.getOneClient(id);
+      const client = await this.clientService.getOneClient(id,undefined,undefined,user);
       if (!client) {
         throw new Error("El cliente no existe o no es un cliente válido");
       }
 
       if(newData.company_id){
-        const company = await this.companyService.getCompanyById(newData.company_id);
+        const company = await this.companyService.getCompanyById(newData.company_id,user);
         if(!company){
           throw new Error("La compañía especificada no existe");
         }
@@ -126,10 +126,10 @@ class ExternalApiService {
 
       const updatedClient = await this.clientService.updateClients(
         id,
-        pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])])
+        pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])]),user
       );
 
-      const partner = await this.clientService.getOneClient(updatedClient.id);
+      const partner = await this.clientService.getOneClient(updatedClient.id,undefined,undefined,user);
 
       return partner;
     } catch (error) {
@@ -137,25 +137,25 @@ class ExternalApiService {
     }
   }
 
-  async editBankAccount(id, newData, type) {
+  async editBankAccount(id, newData, type,user) {
     try {
-      const client = await this.clientService.getOneClient(id);
+      const client = await this.clientService.getOneClient(id,undefined,undefined,user);
       if (!client) {
         throw new Error("El cliente no existe o no es un cliente válido");
       }
       if (type == "add") {
         const existingBanks = await this.bankService.searchBanksByNameIlike(
-          newData.bank_name
+          newData.bank_name,user
         );
 
         let bankGet;
         if (existingBanks?.length === 0) {
-          bankGet = await this.bankService.createBank({ name: newData.bank_name });
+          bankGet = await this.bankService.createBank({ name: newData.bank_name },user);
         } else {
           bankGet = existingBanks[0];
         }
         console.log("Bank found or created:", bankGet);
-        const bank = await this.bankService.getBankById(bankGet.id);
+        const bank = await this.bankService.getBankById(bankGet.id,user);
 
         const bankAccountData = pickFields(newData, BANK_ACCOUNT_FIELDS);
         bankAccountData.partner_id = Number(id);
@@ -163,29 +163,29 @@ class ExternalApiService {
         bankAccountData.bank_name = bank.name;
 
         const updatedAccount = await this.bankAccountService.createBankAccount(
-          bankAccountData
+          bankAccountData,user
         );
 
         if (!updatedAccount) {
           throw new Error("Error al crear la cuenta bancaria");
         }
-        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id);
+        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id,user);
 
         return partnerAfter;
       } else if (type == "delete") {
-        const partner = await this.clientService.getOneClient(id);
+        const partner = await this.clientService.getOneClient(id,undefined,undefined,user);
 
         if (!partner) {
           throw new Error("Cliente no encontrado o no es un cliente válido");
         }
 
         const deleted = await this.bankAccountService.deleteBankAccount(
-          newData.id
+          newData.id,user
         );
         if (!deleted) {
           throw new Error("La cuenta bancaria ya se encuentra archivada o no existe");
         }
-        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id);
+        const partnerAfter = await this.bankAccountService.getBankAccountByPartnerId(id,user);
         return partnerAfter;
       }
     } catch (error) {
@@ -193,10 +193,10 @@ class ExternalApiService {
     }
   }
 
-  async createProduct(data) {
+  async createProduct(data,user) {
     try {
       const productId = await this.productService.createProduct(
-        pickFields(data, PRODUCT_FIELDS)
+        pickFields(data, PRODUCT_FIELDS),user
       );
       return { product_id: productId };
     } catch (error) {
@@ -204,9 +204,9 @@ class ExternalApiService {
     }
   }
 
-  async createBill(data) {
+  async createBill(data,user) {
     try {
-      const client = await this.clientService.getOneClient(data.partner_id);
+      const client = await this.clientService.getOneClient(data.partner_id,undefined,undefined,user);
 
       if (!client) {
         throw new Error(
@@ -215,25 +215,25 @@ class ExternalApiService {
       }
 
       const billId = await this.billService.createBill(
-        pickFields(data, BILL_FIELDS)
+        pickFields(data, BILL_FIELDS),user
       );
       let productsInvalid = [];
       if (data.invoice_line_ids?.length > 0) {
         for (const line of data.invoice_line_ids) {
-          const product = await this.productService.getProductById(line.product_id);
+          const product = await this.productService.getProductById(line.product_id,user);
           if (!product) {
             productsInvalid.push([`El producto con ID ${line.product_id} no existe`]);
           } else {
             await this.billService.addProductToBill(
               billId.id,
-              pickFields(line, INVOICE_LINE_FIELDS)
+              pickFields(line, INVOICE_LINE_FIELDS),user
             );
           }
 
         }
       }
       let message = '';
-      const bill = await this.billService.getBillById(billId.id);
+      const bill = await this.billService.getBillById(billId.id,undefined,user);
       if (productsInvalid.length > 0) {
         message = `La facura se creo correctamente, pero hay algunos productos que no existian: ${productsInvalid.flat().join('; ')}`;
       }
@@ -243,9 +243,9 @@ class ExternalApiService {
     }
   }
 
-  async getBillById(billId) {
+  async getBillById(billId,user) {
     try {
-      const bill = await this.billService.getBillById(billId);
+      const bill = await this.billService.getBillById(billId,undefined,user);
       if (!bill) {
         throw new Error("La factura no existe");
       }
@@ -255,15 +255,15 @@ class ExternalApiService {
     }
   }
 
-  async updateBill(id, data) {
+  async updateBill(id, data,user) {
     try {
-      const bill = await this.billService.getBillById(id, "draft");
+      const bill = await this.billService.getBillById(id, "draft",user);
       if (!bill) {
         throw new Error("La factura no existe o no es un borrador");
       }
       const updatedBill = await this.billService.updateBill(
         id,
-        pickFields(data, BILL_FIELDS)
+        pickFields(data, BILL_FIELDS),user
       );
 
       if (!updatedBill) {
@@ -278,16 +278,16 @@ class ExternalApiService {
             console.log("Deleting line:", line);
             await this.billService.deleteProductFromBill(
               id,
-              line
+              line,user
             );
           }));
         }
         
         await Promise.all(data.invoice_line_ids.map(async (line) => {
-          if (await this.productService.getProductById(line.product_id)) {
+          if (await this.productService.getProductById(line.product_id,user)) {
             await this.billService.addProductToBill(
               id,
-              pickFields(line, INVOICE_LINE_FIELDS)
+              pickFields(line, INVOICE_LINE_FIELDS),user
             );
           }
           else {
@@ -297,7 +297,7 @@ class ExternalApiService {
         }));
       }
 
-      const billAfter = await this.billService.getBillById(id);
+      const billAfter = await this.billService.getBillById(id,undefined,user);
 
       return { billAfter, productsInvalid };
     } catch (error) {
@@ -305,35 +305,35 @@ class ExternalApiService {
     }
   }
 
-  async confirmBill(billId) {
+  async confirmBill(billId,user) {
     try {
-      const bill = await this.billService.getBillById(billId, "draft");
+      const bill = await this.billService.getBillById(billId, "draft",user);
       if (!bill) {
         throw new Error("La factura no existe o no está en estado borrador");
       }
-      const result = await this.billService.confirmBill(billId);
+      const result = await this.billService.confirmBill(billId,user);
       return result;
     } catch (error) {
       throw new Error(`Error al confirmar la factura: ${error.message}`);
     }
   }
 
-  async editRowToBill(billId, rowData, action, productService) {
+  async editRowToBill(billId, rowData, action, productService,user) {
     try {
       let result;
       if (action === "add") {
         const product = await this.productService.getProductById(
-          rowData.product_id
+          rowData.product_id,user
         );
         if (!product) throw new Error("El producto no existe");
-        result = await this.billService.addProductToBill(billId, rowData);
+        result = await this.billService.addProductToBill(billId, rowData,user);
       } else if (action === "delete") {
         result = await this.billService.deleteProductFromBill(
           billId,
-          rowData.id
+          rowData.id,user
         );
       }
-      return await this.billService.getBillById(billId);
+      return await this.billService.getBillById(billId,undefined,user);
     } catch (error) {
       throw new Error(`Error al editar fila de la factura: ${error.message}`);
     }

@@ -24,7 +24,7 @@ class BillService {
       }
       console.log(newBill);
       // Realizamos la consulta a Odoo
-      const bill = await this.connector.executeQuery(
+      const bill = await this.connector.executeQuery(user,
         "account.move",
         "create",
         [newBill],
@@ -36,7 +36,7 @@ class BillService {
       }
 
       // Retornamos la lista de productos
-      const response = await this.getBillById(bill);
+      const response = await this.getBillById(bill, undefined, user);
 
       return response;
     } catch (error) {
@@ -69,7 +69,7 @@ class BillService {
         domain.push(['state', '=', 'posted']);
       }
       // Realizamos la consulta a Odoo
-      bills = await this.connector.executeQuery(
+      bills = await this.connector.executeQuery(user,
         "account.move",
         "search_read",
         [domain],
@@ -89,12 +89,12 @@ class BillService {
       if (!loggedIn) {
         throw new Error("No se pudo conectar a Odoo");
       }
-      const bill = await this.getBillById(billId, "draft");
+      const bill = await this.getBillById(billId, "draft", user);
       if (!bill) {
         throw new Error("La factura no existe o no es un borrador");
       }
       // Realizamos la consulta a Odoo
-      const result = await this.connector.executeQuery(
+      const result = await this.connector.executeQuery(user,
         "account.move",
         "write",
         [[Number(billId)], updatedBill],
@@ -116,13 +116,13 @@ class BillService {
         throw new Error("No se pudo conectar a Odoo");
       }
 
-      const bill = await this.getBillById(billId);
+      const bill = await this.getBillById(billId,undefined,user);
       if (!bill) {
         throw new Error("La Factura no existe");
       }
 
       // Agregamos la línea de producto a la factura
-      const updatedBill = await this.connector.executeQuery(
+      const updatedBill = await this.connector.executeQuery(user,
         "account.move",
         "write",
         [Number(billId), { invoice_line_ids: [[0, 0, productLine]] }],
@@ -135,7 +135,7 @@ class BillService {
 
       return updatedBill;
     } catch (error) {
-      throw new Error("Error al editar las row");
+      throw new Error("Error al editar las row",error.message);
     }
   }
 
@@ -148,7 +148,7 @@ class BillService {
       }
 
       // Eliminamos la línea de producto de la factura
-      const updatedBill = await this.connector.executeQuery(
+      const updatedBill = await this.connector.executeQuery(user,
         "account.move",
         "write",
         [Number(billId), { invoice_line_ids: [[2, Number(productLineId)]] }],
@@ -172,24 +172,24 @@ class BillService {
       if (!loggedIn) {
         throw new Error("No se pudo conectar a Odoo");
       }
-
-      await this.connector.executeQuery(
+      
+      const result = await this.connector.executeQuery(user,
         "account.move",
         "action_post",
         [Number(billId)],
         {}
       );
-
-      const [bill] = await this.connector.executeQuery(
+      console.log("Confirming bill ID:", result);
+      const [bill] = await this.connector.executeQuery(user,
         'account.move',
         'search_read',
         [[['id', '=', billId]]],
         { fields: ['id', 'state'] }
       );
-
+      console.log("Bill after confirm:", bill);
       if (bill && bill.state === 'posted') {
         // La factura está validada
-        const confirmedBillDetails = await this.getBillById(billId);
+        const confirmedBillDetails = await this.getBillById(billId,undefined,user);
         return confirmedBillDetails;
       } else {
         // No está validada

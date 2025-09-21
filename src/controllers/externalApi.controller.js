@@ -23,7 +23,7 @@ const externalApiController = {
 
     createClientWithBankAccounts: async (req, res) => {
         try {
-            const result = await externalApiService.createClientWithBankAccount(req.body, 'client');
+            const result = await externalApiService.createClientWithBankAccount(req.body, 'client',req.user);
             res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error en externalApi:', error);
@@ -33,7 +33,7 @@ const externalApiController = {
 
     createProvider: async (req, res) => {
         try {
-            const result = await externalApiService.createClientWithBankAccount(req.body, 'provider');
+            const result = await externalApiService.createClientWithBankAccount(req.body, 'provider',req.user);
             res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear proveedor:', error);
@@ -43,7 +43,7 @@ const externalApiController = {
 
     createProduct: async (req, res) => {
         try {
-            const result = await externalApiService.createProduct(req.body);
+            const result = await externalApiService.createProduct(req.body,req.user);
             res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear producto:', error);
@@ -53,7 +53,7 @@ const externalApiController = {
 
     createBill: async (req, res) => {
         try {
-            const result = await externalApiService.createBill(req.body);
+            const result = await externalApiService.createBill(req.body,req.user);
             res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al crear factura:', error);
@@ -63,7 +63,7 @@ const externalApiController = {
 
     updateBill: async (req, res) => {
         try {
-            const result = await externalApiService.updateBill(req.params.id, req.body);
+            const result = await externalApiService.updateBill(req.params.id, req.body,req.user);
             res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al actualizar la factura:', error);
@@ -73,7 +73,7 @@ const externalApiController = {
 
     addRowToBill: async (req, res) => {
         try {
-            const result = await externalApiService.editRowToBill(req.params.id, req.body, "add");
+            const result = await externalApiService.editRowToBill(req.params.id, req.body, "add",req.user);
             res.status(201).json({ status: 201, data: result });
         } catch (error) {
             console.error('Error al agregar fila a la factura:', error);
@@ -83,7 +83,7 @@ const externalApiController = {
 
     deleteRowFromBill: async (req, res) => {
         try {
-            const result = await externalApiService.editRowToBill(req.params.id, req.body, "delete");
+            const result = await externalApiService.editRowToBill(req.params.id, req.body, "delete",req.user);
             res.status(204).json({ status: 204, data: result });
         } catch (error) {   
             console.error('Error al eliminar fila de la factura:', error);
@@ -93,7 +93,7 @@ const externalApiController = {
 
     getBillById: async (req, res) => {
         try {
-            const result = await externalApiService.getBillById(req.params.id);
+            const result = await externalApiService.getBillById(req.params.id,req.user);
             res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al obtener factura:', error);
@@ -103,7 +103,7 @@ const externalApiController = {
 
     confirmBill: async (req, res) => {
         try {
-            const result = await externalApiService.confirmBill(req.params.id);
+            const result = await externalApiService.confirmBill(req.params.id,req.user);
             res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al confirmar factura:', error);
@@ -113,7 +113,7 @@ const externalApiController = {
 
     addBankAccount: async (req, res) => {
         try {
-            const result = await externalApiService.editBankAccount(req.params.id, req.body, "add");
+            const result = await externalApiService.editBankAccount(req.params.id, req.body, "add",req.user);
             res.status(200).json({ status: 200, data: result });
         } catch (error) {
             console.error('Error al editar cuenta bancaria:', error);
@@ -123,7 +123,7 @@ const externalApiController = {
 
     deleteBankAccount: async (req, res) => {
         try {
-            const result = await externalApiService.editBankAccount(req.params.id, req.body, "delete");       
+            const result = await externalApiService.editBankAccount(req.params.id, req.body, "delete",req.user);       
             res.status(200).json(result);
         } catch (error) {   
             console.error('Error al editar cuenta bancaria:', error);
@@ -133,7 +133,7 @@ const externalApiController = {
 
     getClients: async (req, res) => {
         try {
-            const clients = await clientService.getClients(req.query.company_id, "client");
+            const clients = await clientService.getClients(req.query.company_id, "client",req.user);
             res.status(200).json({ status: 200, data: clients });
         } catch (error) {
             console.error('Error al obtener clientes:', error.message);
@@ -143,7 +143,7 @@ const externalApiController = {
 
     getProviders: async (req, res) => {
         try {
-            const partner = await clientService.getClients(req.query.company_id, "provider");
+            const partner = await clientService.getClients(req.query.company_id, "provider",req.user);
             res.status(200).json({ status: 200, data: partner });
         } catch (error) {
             console.error('Error al obtener proveedores:', error.message);
@@ -153,7 +153,7 @@ const externalApiController = {
 
     getOneClient: async (req, res) => {
         try {
-            const client = await clientService.getOneClient(req.params.id, req.query.company_id);
+            const client = await clientService.getOneClient(req.params.id, req.query.company_id,undefined,req.user);
             res.status(200).json({ client });
         } catch (error) {
             console.error('Error al obtener cliente:', error.message);
@@ -166,7 +166,7 @@ const externalApiController = {
 
     createClient: async (req, res) => {
         try {
-            const client = await clientService.createPartner(req.body);
+            const client = await clientService.createPartner(req.body,req.user);
             res.status(200).json(client);
         } catch (error) {
             console.error('Error al crear el cliente:', error.message);
@@ -178,7 +178,7 @@ const externalApiController = {
     updateClient: async (req, res) => {
         try {
             const updatedClient = await clientService.updateClientWithCompanyValidation(
-                req.params.id, req.query.company_id, req.body, companyService
+                req.params.id, req.query.company_id, req.body, companyService,req.user
             );
             res.status(200).json({ success: true, data: updatedClient });
         } catch (error) {
@@ -192,7 +192,7 @@ const externalApiController = {
 
     deleteClient: async (req, res) => {
         try {
-            const clients = await clientService.deleteClient(req.params.id, req.query.company_id);
+            const clients = await clientService.deleteClient(req.params.id, req.query.company_id,req.user);
             res.status(200).json({ success: 200, data: clients });
         } catch (error) {
             console.error('Error al eliminar el cliente:', error.message);
@@ -203,7 +203,7 @@ const externalApiController = {
     createBank: async (req, res) => {
         try {
             const bankData = req.body;
-            const newBank = await bankService.createBank(bankData);
+            const newBank = await bankService.createBank(bankData,req.user);
             res.status(201).json({ bank: newBank });
         } catch (error) {
             console.error('Error al crear el banco:', error.message);
@@ -214,7 +214,7 @@ const externalApiController = {
     createAccountBank: async (req, res) => {
         try {
             const bankData = req.body;
-            const newBank = await bankAccountService.createBankAccount(bankData);
+            const newBank = await bankAccountService.createBankAccount(bankData,req.user);
             res.status(201).json({ bank: newBank });
         } catch (error) {
             console.error('Error al crear la cuenta bancaria:', error.message);

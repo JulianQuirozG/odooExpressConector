@@ -19,7 +19,7 @@ class ClientService {
     this.connector = connector;
   }
 
-  async getClients(company_id, type) {
+  async getClients(company_id, type,user) {
     try {
       // Iniciar sesión en Odoo
       const loggedIn = await this.connector.login();
@@ -53,7 +53,7 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(
+      const clients = await this.connector.executeQuery(user,
         "res.partner",
         "search_read",
         [domain],
@@ -83,7 +83,7 @@ class ClientService {
     }
   }
 
-  async getOneClient(id, company_id, type) {
+  async getOneClient(id, company_id, type,user) {
     // Iniciar sesión en Odoo
     const loggedIn = await this.connector.login();
     if (!loggedIn) {
@@ -105,7 +105,7 @@ class ClientService {
     console.log("Dominio usado:", domain);
     try {
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(
+      const clients = await this.connector.executeQuery(user,
         "res.partner",
         "search_read",
         [domain],
@@ -125,7 +125,7 @@ class ClientService {
     }
   }
 
-  async createPartner(novoCliente) {
+  async createPartner(novoCliente,user) {
     //verificamos la session
     const loggedIn = await this.connector.login();
     if (!loggedIn) {
@@ -133,7 +133,7 @@ class ClientService {
     }
     console.log(novoCliente);
     // Realizamos la consulta a Odoo
-    const clients = await this.connector.executeQuery(
+    const clients = await this.connector.executeQuery(user,
       "res.partner",
       "create",
       [novoCliente],
@@ -148,7 +148,7 @@ class ClientService {
     return clients;
   }
 
-  async updateClients(id, novoCliente, companyId) {
+  async updateClients(id, novoCliente, companyId,user) {
     try {
       // Verificamos la sesión
       const loggedIn = await this.connector.login();
@@ -159,7 +159,7 @@ class ClientService {
 
       // Validar que el cliente existe
 
-      const client = await this.getOneClient(id, companyId);
+      const client = await this.getOneClient(id, companyId,undefined,user);
       if (!client) {
         throw new Error("Cliente no encontrado o no es un cliente válido");
       }
@@ -167,7 +167,7 @@ class ClientService {
       //console.log('Cliente encontrado para actualizar:', client);
 
       // Intentar realizar la actualización
-      const result = await this.connector.executeQuery("res.partner", "write", [
+      const result = await this.connector.executeQuery(user,"res.partner", "write", [
         [Number(id)],
         novoCliente,
       ]);
@@ -176,7 +176,7 @@ class ClientService {
         throw new Error("Error al actualizar el cliente en Odoo");
       }
 
-      return await this.getOneClient(id);
+      return await this.getOneClient(id,undefined, undefined,user);
     } catch (error) {
       // Manejar errores específicos de Odoo
       if (
@@ -191,19 +191,19 @@ class ClientService {
     }
   }
 
-  async deleteClient(id, company_id) {
+  async deleteClient(id, company_id,user) {
     // Verificamos la sesión
     const loggedIn = await this.connector.login();
     if (!loggedIn) {
       throw new Error("No se pudo conectar a Odoo");
     }
 
-    const ids = await this.getOneClient(Number(id), Number(company_id));
+    const ids = await this.getOneClient(Number(id), Number(company_id),undefined,user);
     if (!ids) {
       throw new Error("Cliente no encontrado o no es un cliente válido");
     }
     // En vez de eliminar, actualizamos el campo 'active' a false para archivar
-    const result = await this.connector.executeQuery("res.partner", "write", [
+    const result = await this.connector.executeQuery(user,"res.partner", "write", [
       [ids.id],
       { active: false },
     ]);
@@ -225,13 +225,14 @@ class ClientService {
     id,
     companyIdSearch,
     novoCliente,
-    companyService
+    companyService,
+    user
   ) {
     const companyId = novoCliente.company_id;
 
     if (companyId) {
       try {
-        const exists = await companyService.companyExists(companyId);
+        const exists = await companyService.companyExists(companyId,user);
         if (!exists) {
           throw { status: 404, message: "La compañía especificada no existe" };
         }
@@ -243,10 +244,10 @@ class ClientService {
 
     // Si la compañía es válida o no se proporcionó, procedemos a editar el cliente
 
-    return await this.updateClients(id, novoCliente, companyIdSearch);
+    return await this.updateClients(id, novoCliente, companyIdSearch,user);
   }
 
-  async getProviders(company_id) {
+  async getProviders(company_id,user) {
     try {
       // Iniciar sesión en Odoo
       const loggedIn = await this.connector.login();
@@ -277,7 +278,7 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(
+      const clients = await this.connector.executeQuery(user,
         "res.partner",
         "search_read",
         [domain],
@@ -307,7 +308,7 @@ class ClientService {
     }
   }
 
-  async getOneProvider(id, company_id) {
+  async getOneProvider(id, company_id,user) {
     // Iniciar sesión en Odoo
     const loggedIn = await this.connector.login();
     if (!loggedIn) {
@@ -341,7 +342,7 @@ class ClientService {
     console.log("Dominio usado:", domain);
     try {
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(
+      const clients = await this.connector.executeQuery(user,
         "res.partner",
         "search_read",
         [domain],
@@ -361,7 +362,7 @@ class ClientService {
     }
   }
 
-  async getPartners(company_id, type) {
+  async getPartners(company_id, type,user) {
     try {
       const loggedIn = await this.connector.login();
       if (!loggedIn) {
@@ -401,7 +402,7 @@ class ClientService {
         "company_id",
       ];
 
-      const partners = await this.connector.executeQuery(
+      const partners = await this.connector.executeQuery(user,
         "res.partner",
         "search_read",
         [domain],

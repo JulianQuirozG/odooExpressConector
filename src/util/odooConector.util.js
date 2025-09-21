@@ -71,9 +71,8 @@ class OdooConnector {
     }
 
     async login() {
-        if (this.session.uid) {
+
             return true; // Ya estamos logueados
-        }
         const url = `${this.odooUrl}/jsonrpc`;
         const payload = {
             jsonrpc: "2.0",
@@ -102,13 +101,9 @@ class OdooConnector {
         }
     }
 
-    async executeQuery(model, method, args = [], kwargs = {}) {
-        if (!this.session.uid) {
-            await this.login();
-            console.error('No hay una sesión activa. Por favor, inicie sesión primero.');
-            return null;
-        }
+    async executeQuery(user, model, method, args = [], kwargs = {}) {
 
+        console.log("Credenciales de usuario:", user);
         const url = `${this.odooUrl}/jsonrpc`;
         const payload = {
             jsonrpc: "2.0",
@@ -117,9 +112,9 @@ class OdooConnector {
                 service: "object",
                 method: "execute_kw",
                 args: [
-                    this.db,
-                    this.session.uid,
-                    this.password,
+                    user.db,
+                    user.uid,
+                    user.password,
                     model,
                     method,
                     args,

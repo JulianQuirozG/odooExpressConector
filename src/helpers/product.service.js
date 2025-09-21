@@ -19,7 +19,7 @@ class ProductService {
     this.connector = connector;
   }
   // Obtener un producto por ID
-  async getProductById(id) {
+  async getProductById(id,user) {
     // Verificamos la sesión
     try {
       const loggedIn = await this.connector.login();
@@ -37,7 +37,7 @@ class ProductService {
         "description",
         "company_id",
       ];
-      const product = await this.connector.executeQuery(
+      const product = await this.connector.executeQuery(user,
         "product.template",
         "search_read",
         [[["id", "=", Number(id)]]], // Dominio correcto
@@ -50,7 +50,7 @@ class ProductService {
     }
   }
 
-  async createProduct(newProduct) {
+  async createProduct(newProduct,user) {
     try {
       //verificamos la session
       const loggedIn = await this.connector.login();
@@ -59,7 +59,7 @@ class ProductService {
       }
       console.log(newProduct);
       // Realizamos la consulta a Odoo
-      const product = await this.connector.executeQuery(
+      const product = await this.connector.executeQuery(user,
         "product.template",
         "create",
         [newProduct],
@@ -71,7 +71,7 @@ class ProductService {
       }
 
       // Retornamos la lista de productos
-      const productDetails = await this.getProductById(product);
+      const productDetails = await this.getProductById(product,user);
       
       return productDetails;
     } catch (error) {
@@ -80,7 +80,7 @@ class ProductService {
   }
 
   //Falta implementar
-  async updateProducts(id, novoProducto, companyId) {
+  async updateProducts(id, novoProducto, companyId,user) {
     try {
       // Verificamos la sesión
       const loggedIn = await this.connector.login();
@@ -90,7 +90,7 @@ class ProductService {
       //console.log('Datos a actualizar:', novoCliente);
 
       // Validar que el cliente existe
-      const client = await this.getOneClient(id, companyId);
+      const client = await this.getOneClient(id, companyId, undefined,user);
       if (!client) {
         throw new Error("Cliente no encontrado o no es un cliente válido");
       }
@@ -98,7 +98,7 @@ class ProductService {
       console.log("Cliente encontrado para actualizar:", client);
 
       // Intentar realizar la actualización
-      const result = await this.connector.executeQuery("res.partner", "write", [
+      const result = await this.connector.executeQuery(user,"res.partner", "write", [
         ["id", "=", Number(id)],
         novoCliente,
       ]);

@@ -19,7 +19,7 @@ async function validateCompanyExists(req, res, next) {
         return res.status(400).json({ error: 'company_id debe ser un número válido mayor que 0' });
     }
     try {
-        const exists = await companyService.companyExists(companyId);
+        const exists = await companyService.companyExists(companyId,user);
         if (!exists) {
             return res.status(404).json({ error: 'La compañía especificada no existe' });
         }
