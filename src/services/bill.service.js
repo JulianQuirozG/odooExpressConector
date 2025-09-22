@@ -1,6 +1,6 @@
 // services/odooService.js
 
-const OdooConnector = require("../util/odooConector.util.js");
+const connector = require("../util/odooConector.util.js");
 const z = require("zod");
 
 /**
@@ -11,25 +11,22 @@ class BillService {
   /**
    * @param {OdooConnector} connector
    */
-  constructor(connector) {
+  constructor() {
     /** @type {OdooConnector} */
     this.connector = connector;
   }
 
   async createBill(newBill, user) {
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
+
       console.log(newBill);
       // Realizamos la consulta a Odoo
-      const bill = await this.connector.executeQuery(user,
+      const bill = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "create",
         [newBill],
         {}
-      );
+      ]);
 
       if (!bill) {
         throw new Error("Error al crear la factura");
@@ -48,10 +45,7 @@ class BillService {
   async getBillById(billId, type, user) {
     //verificamos la session
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
+
       let bills = [];
       const domain = [["id", "=", Number(billId)]];
       const fields = [
@@ -69,12 +63,12 @@ class BillService {
         domain.push(['state', '=', 'posted']);
       }
       // Realizamos la consulta a Odoo
-      bills = await this.connector.executeQuery(user,
+      bills = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
 
       return bills[0];
     } catch (error) {
@@ -85,21 +79,17 @@ class BillService {
   async updateBill(billId, updatedBill, user) {
     //verificamos la session
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
       const bill = await this.getBillById(billId, "draft", user);
       if (!bill) {
         throw new Error("La factura no existe o no es un borrador");
       }
       // Realizamos la consulta a Odoo
-      const result = await this.connector.executeQuery(user,
+      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "write",
         [[Number(billId)], updatedBill],
         {}
-      );
+      ]);
       if (!result) {
         throw new Error("Error al actualizar la factura");
       }
@@ -111,10 +101,6 @@ class BillService {
   async addProductToBill(billId, productLine , user) {
     //verificamos la session
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
 
       const bill = await this.getBillById(billId,undefined,user);
       if (!bill) {
@@ -122,12 +108,12 @@ class BillService {
       }
 
       // Agregamos la línea de producto a la factura
-      const updatedBill = await this.connector.executeQuery(user,
+      const updatedBill = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "write",
         [Number(billId), { invoice_line_ids: [[0, 0, productLine]] }],
         {}
-      );
+      ]);
       //console.log("Updated Bill:", updatedBill);
       if (!updatedBill) {
         throw new Error("El producto no existe");
@@ -142,18 +128,14 @@ class BillService {
   async deleteProductFromBill(billId, productLineId, user) {
     //verificamos la session
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
 
       // Eliminamos la línea de producto de la factura
-      const updatedBill = await this.connector.executeQuery(user,
+      const updatedBill = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "write",
         [Number(billId), { invoice_line_ids: [[2, Number(productLineId)]] }],
         {}
-      );
+      ]);
 
       if (!updatedBill) {
         throw new Error("Error al eliminar producto de la factura");
@@ -168,24 +150,20 @@ class BillService {
   async confirmBill(billId, user) {
     //verificamos la session
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
-      
-      const result = await this.connector.executeQuery(user,
+
+      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "account.move",
         "action_post",
         [Number(billId)],
         {}
-      );
+      ]);
       console.log("Confirming bill ID:", result);
-      const [bill] = await this.connector.executeQuery(user,
+      const [bill] = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         'account.move',
         'search_read',
         [[['id', '=', billId]]],
         { fields: ['id', 'state'] }
-      );
+      ]);
       console.log("Bill after confirm:", bill);
       if (bill && bill.state === 'posted') {
         // La factura está validada

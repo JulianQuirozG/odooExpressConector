@@ -1,10 +1,12 @@
 // services/odooService.js
 
-const OdooConnector = require("../util/odooConector.util.js");
+const connector = require("../util/odooConector.util.js");
 const clientSchema = require("../schemas/client.schema.js");
 const updateClientSchema = require("../schemas/clientUpdate.schema.js");
 const z = require("zod");
 const CompanyService = require("./company.service.js");
+const { pickFields } = require("../util/object.util.js");
+const { PRODUCT_FIELDS } = require("./fields/entityFields.js");
 
 /**
  * @class
@@ -14,7 +16,7 @@ class ProductService {
   /**
    * @param {OdooConnector} connector
    */
-  constructor(connector) {
+  constructor() {
     /** @type {OdooConnector} */
     this.connector = connector;
   }
@@ -22,10 +24,7 @@ class ProductService {
   async getProductById(id,user) {
     // Verificamos la sesión
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
+
       const fields = [
         "name",
         "default_code",
@@ -37,12 +36,12 @@ class ProductService {
         "description",
         "company_id",
       ];
-      const product = await this.connector.executeQuery(user,
+      const product = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "product.template",
         "search_read",
         [[["id", "=", Number(id)]]], // Dominio correcto
         { fields }
-      );
+      ]);
 
       return product[0];
     } catch (error) {
@@ -53,18 +52,14 @@ class ProductService {
   async createProduct(newProduct,user) {
     try {
       //verificamos la session
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
-      console.log(newProduct);
+      const productData = pickFields(newProduct, PRODUCT_FIELDS)
       // Realizamos la consulta a Odoo
-      const product = await this.connector.executeQuery(user,
+      const product = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "product.template",
         "create",
-        [newProduct],
+        [productData],
         {}
-      );
+      ]);
 
       if (!product) {
         throw new Error("Error al obtener la lista de productos desde Odoo");
@@ -83,10 +78,7 @@ class ProductService {
   async updateProducts(id, novoProducto, companyId,user) {
     try {
       // Verificamos la sesión
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
+
       //console.log('Datos a actualizar:', novoCliente);
 
       // Validar que el cliente existe
@@ -98,10 +90,10 @@ class ProductService {
       console.log("Cliente encontrado para actualizar:", client);
 
       // Intentar realizar la actualización
-      const result = await this.connector.executeQuery(user,"res.partner", "write", [
+      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,"res.partner", "write", [
         ["id", "=", Number(id)],
         novoCliente,
-      ]);
+      ]]);
 
       if (!result) {
         throw new Error("Error al actualizar el cliente en Odoo");

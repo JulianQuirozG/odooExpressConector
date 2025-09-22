@@ -1,31 +1,135 @@
 // services/odooService.js
 
-const OdooConnector = require("../util/odooConector.util.js");
+const connector = require("../util/odooConector.util.js");
 const clientSchema = require("../schemas/client.schema.js");
 const updateClientSchema = require("../schemas/clientUpdate.schema.js");
 const z = require("zod");
-const CompanyService = require("../helpers/company.service.js");
+const CompanyService = require("./company.service.js");
+const BankAccountService = require("./BankAccount.service.js");
+const ProductService = require("../services/product.service.js");
+const BankService = require("./bank.service.js");
+const { CLIENT_FIELDS, PROVIDER_FIELDS, BANK_ACCOUNT_FIELDS } = require("./fields/entityFields.js");
+const { pickFields } = require("../util/object.util.js");
 
-/**
- * @class
- * @param {OdooConnector} connector - Instancia de OdooConnector
- */
 class ClientService {
-  /**
-   * @param {OdooConnector} connector
-   */
-  constructor(connector) {
+
+  constructor() {
     /** @type {OdooConnector} */
     this.connector = connector;
+    this.companyService = new CompanyService();
+    this.bankService = new BankService();
+    this.productService = new ProductService();
+    this.bankAccountService = new BankAccountService();
+
   }
 
-  async getClients(company_id, type,user) {
+  async createClientWithBankAccount(data, type, user) {
+    try {
+      // 1  Crear un cliente o proveedor
+      let fields = CLIENT_FIELDS;
+      if (type === "provider") {
+        fields = PROVIDER_FIELDS;
+      } else if (type === "both") {
+        fields = [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])];
+      }
+      const clientId = await this.createPartner(
+        pickFields(data, fields), user
+      );
+
+      // 2. validar que los bancos existan o crearlos
+      const results = [];
+      const bankAccounts = [];
+      const bankAccountInvalid = [];
+      if (data.bankAccounts?.length > 0) {
+        for (const account of data.bankAccounts) {
+          // Buscar banco por nombre (bank_name)
+          const banks = await this.bankService.searchBanksByNameIlike(
+            account.bank?.bank_name, user
+          );
+
+          let bank = [];
+          // Si no existe el banco, crearlo
+          if (!banks || banks.length == 0) {
+            console.log("Creating bank:", account.bank?.bank_name);
+
+            const bankId = await this.bankService.createBank({
+              name: account.bank?.bank_name,
+            }, user);
+
+            bank = { id: bankId };
+          } else {
+            bank = banks[0];
+          }
+
+          // Crear cuenta bancaria
+          const bankAccountData = pickFields(account, BANK_ACCOUNT_FIELDS);
+          bankAccountData.partner_id = clientId;
+          bankAccountData.bank_id = bank.id;
+          bankAccountData.bank_name = bank.name;
+          console.log("Creating bank account:", bankAccountData);
+
+          if (!bankAccounts.includes(bankAccountData.acc_number)) {
+            bankAccounts.push(bankAccountData.acc_number);
+            const bankAccountId = await this.bankAccountService.createBankAccount(
+              bankAccountData, user
+            );
+            results.push({
+              partner_id: clientId,
+              bank_id: bank.id,
+              bank_account_id: bankAccountId,
+            });
+          } else {
+            bankAccountInvalid.push(`La cuenta bancaria ${bankAccountData.acc_number} está duplicada en la solicitud y no fue creada.`);
+          }
+        }
+      }
+      // 3. Retornar resultado
+      const partner = await this.getOneClient(clientId, undefined, undefined, user);
+      return {
+        partner,
+        bankAccountResults: results,
+        bankAccountInvalid: bankAccountInvalid
+      };
+    } catch (error) {
+      // Puedes personalizar el error o simplemente relanzarlo
+      throw new Error(
+        `Error al crear cliente y cuentas bancarias: ${error.message}`
+      );
+    }
+  }
+
+  async updatePartner(id, newData, user) {
+    try {
+      const client = await this.getOneClient(id, undefined, undefined, user);
+      if (!client) {
+        throw new Error("El cliente no existe o no es un cliente válido");
+      }
+
+      if (newData.company_id) {
+        const company = await this.companyService.companyExists(newData.company_id, user);
+        if (!company) {
+          throw new Error("La compañía especificada no existe");
+        }
+      }
+
+      const updatedClient = await this.updateClients(
+        id,
+        pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])]), user
+      );
+
+      const partner = await this.getOneClient(updatedClient.id, undefined, undefined, user);
+
+      return partner;
+    } catch (error) {
+      throw new Error(`Error al actualizar cliente: ${error.message}`);
+    }
+  }
+
+
+  async getClients(company_id, type, user) {
     try {
       // Iniciar sesión en Odoo
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
+
       let domain = [];
       if (type && type === "client") {
         domain.push(["customer_rank", ">", 0]);
@@ -53,12 +157,12 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(user,
+      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "res.partner",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
       if (!clients) {
         throw new Error("No hay clientes registrados en el sistema");
@@ -83,12 +187,8 @@ class ClientService {
     }
   }
 
-  async getOneClient(id, company_id, type,user) {
+  async getOneClient(id, company_id, type, user) {
     // Iniciar sesión en Odoo
-    const loggedIn = await this.connector.login();
-    if (!loggedIn) {
-      throw new Error("No se pudo conectar a Odoo");
-    }
 
     // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
     let domain = [["id", "=", Number(id)]];
@@ -101,16 +201,16 @@ class ClientService {
       domain.push(["customer_rank", ">", 0]);
     }
 
-    const fields = [ "id","name","vat","street","city","country_id","phone","mobile","email","website","lang","category_id","company_id","is_company","company_type","street2","zip","supplier_rank","customer_rank","parent_id",]; // Campos que deseas traer
+    const fields = ["id", "name", "vat", "street", "city", "country_id", "phone", "mobile", "email", "website", "lang", "category_id", "company_id", "is_company", "company_type", "street2", "zip", "supplier_rank", "customer_rank", "parent_id",]; // Campos que deseas traer
     console.log("Dominio usado:", domain);
     try {
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(user,
+      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "res.partner",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
       console.log(clients);
       // Si no se encuentran clientes, devolvemos un error
       if (!clients || clients.length === 0) {
@@ -125,20 +225,16 @@ class ClientService {
     }
   }
 
-  async createPartner(novoCliente,user) {
+  async createPartner(novoCliente, user) {
     //verificamos la session
-    const loggedIn = await this.connector.login();
-    if (!loggedIn) {
-      throw new Error("No se pudo conectar a Odoo");
-    }
     console.log(novoCliente);
     // Realizamos la consulta a Odoo
-    const clients = await this.connector.executeQuery(user,
+    const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
       "res.partner",
       "create",
       [novoCliente],
       {}
-    );
+    ]);
 
     if (!clients) {
       throw new Error("Error al obtener la lista de clientes desde Odoo");
@@ -148,18 +244,13 @@ class ClientService {
     return clients;
   }
 
-  async updateClients(id, novoCliente, companyId,user) {
+  async updateClients(id, novoCliente, companyId, user) {
     try {
       // Verificamos la sesión
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
-
 
       // Validar que el cliente existe
 
-      const client = await this.getOneClient(id, companyId,undefined,user);
+      const client = await this.getOneClient(id, companyId, undefined, user);
       if (!client) {
         throw new Error("Cliente no encontrado o no es un cliente válido");
       }
@@ -167,16 +258,16 @@ class ClientService {
       //console.log('Cliente encontrado para actualizar:', client);
 
       // Intentar realizar la actualización
-      const result = await this.connector.executeQuery(user,"res.partner", "write", [
+      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password, "res.partner", "write", [
         [Number(id)],
         novoCliente,
-      ]);
+      ]]);
 
       if (!result) {
         throw new Error("Error al actualizar el cliente en Odoo");
       }
 
-      return await this.getOneClient(id,undefined, undefined,user);
+      return await this.getOneClient(id, undefined, undefined, user);
     } catch (error) {
       // Manejar errores específicos de Odoo
       if (
@@ -191,22 +282,18 @@ class ClientService {
     }
   }
 
-  async deleteClient(id, company_id,user) {
+  async deleteClient(id, company_id, user) {
     // Verificamos la sesión
-    const loggedIn = await this.connector.login();
-    if (!loggedIn) {
-      throw new Error("No se pudo conectar a Odoo");
-    }
 
-    const ids = await this.getOneClient(Number(id), Number(company_id),undefined,user);
+    const ids = await this.getOneClient(Number(id), Number(company_id), undefined, user);
     if (!ids) {
       throw new Error("Cliente no encontrado o no es un cliente válido");
     }
     // En vez de eliminar, actualizamos el campo 'active' a false para archivar
-    const result = await this.connector.executeQuery(user,"res.partner", "write", [
+    const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password, "res.partner", "write", [
       [ids.id],
       { active: false },
-    ]);
+    ]]);
 
     if (!result) {
       throw new Error("Error al archivar el cliente");
@@ -232,7 +319,7 @@ class ClientService {
 
     if (companyId) {
       try {
-        const exists = await companyService.companyExists(companyId,user);
+        const exists = await companyService.companyExists(companyId, user);
         if (!exists) {
           throw { status: 404, message: "La compañía especificada no existe" };
         }
@@ -244,16 +331,12 @@ class ClientService {
 
     // Si la compañía es válida o no se proporcionó, procedemos a editar el cliente
 
-    return await this.updateClients(id, novoCliente, companyIdSearch,user);
+    return await this.updateClients(id, novoCliente, companyIdSearch, user);
   }
 
-  async getProviders(company_id,user) {
+  async getProviders(company_id, user) {
     try {
       // Iniciar sesión en Odoo
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
 
       // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
       let domain = [["supplier_rank", ">", 0]]; // Filtro para obtener solo los proveedores
@@ -278,12 +361,12 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(user,
+      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "res.partner",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
       if (!clients) {
         throw new Error("No hay clientes registrados en el sistema");
@@ -308,12 +391,8 @@ class ClientService {
     }
   }
 
-  async getOneProvider(id, company_id,user) {
+  async getOneProvider(id, company_id, user) {
     // Iniciar sesión en Odoo
-    const loggedIn = await this.connector.login();
-    if (!loggedIn) {
-      throw new Error("No se pudo conectar a Odoo");
-    }
 
     // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
     let domain = [
@@ -342,12 +421,12 @@ class ClientService {
     console.log("Dominio usado:", domain);
     try {
       // Realizamos la consulta a Odoo
-      const clients = await this.connector.executeQuery(user,
+      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "res.partner",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
       console.log(clients);
       // Si no se encuentran clientes, devolvemos un error
       if (!clients || clients.length === 0) {
@@ -362,12 +441,8 @@ class ClientService {
     }
   }
 
-  async getPartners(company_id, type,user) {
+  async getPartners(company_id, type, user) {
     try {
-      const loggedIn = await this.connector.login();
-      if (!loggedIn) {
-        throw new Error("No se pudo conectar a Odoo");
-      }
 
       let domain = [];
       if (type === "customer") {
@@ -402,12 +477,12 @@ class ClientService {
         "company_id",
       ];
 
-      const partners = await this.connector.executeQuery(user,
+      const partners = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
         "res.partner",
         "search_read",
         [domain],
         { fields }
-      );
+      ]);
       if (!partners) {
         throw new Error("No hay registros en el sistema");
       }

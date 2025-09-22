@@ -5,6 +5,7 @@ const port = 3000;
 const OdooConnector = require('./src/util/odooConector.util.js');
 const externalApiRoutes = require('./src/routes/External.routes.js');
 const { errorHandler } = require('./src/middleware/errorHandler.middelware.js');
+const billRoutes = require('./src/routes/bill.routes.js');
 
 // Create the async function to start the application
 async function startServer() {
@@ -14,6 +15,7 @@ async function startServer() {
         app.use(express.json());
 
         app.use('/api', externalApiRoutes);
+        app.use('/api', billRoutes);
 
         app.use(errorHandler);
 
