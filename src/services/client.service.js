@@ -5,24 +5,14 @@ const clientSchema = require("../schemas/client.schema.js");
 const updateClientSchema = require("../schemas/clientUpdate.schema.js");
 const z = require("zod");
 const CompanyService = require("./company.service.js");
-const BankAccountService = require("./BankAccount.service.js");
-const ProductService = require("../services/product.service.js");
-const BankService = require("./bank.service.js");
+const {bankAccountService} = require("./BankAccount.service.js");
+const {productService} = require("../services/product.service.js");
+const {bankService} = require("./bank.service.js");
 const { CLIENT_FIELDS, PROVIDER_FIELDS, BANK_ACCOUNT_FIELDS } = require("./fields/entityFields.js");
 const { pickFields } = require("../util/object.util.js");
 
-class ClientService {
 
-  constructor() {
-    /** @type {OdooConnector} */
-    this.connector = connector;
-    this.companyService = new CompanyService();
-    this.bankService = new BankService();
-    this.productService = new ProductService();
-    this.bankAccountService = new BankAccountService();
-
-  }
-
+const clientService = {
   async createClientWithBankAccount(data, type, user) {
     try {
       // 1  Crear un cliente o proveedor
@@ -110,7 +100,7 @@ class ClientService {
         data: [],
       };
     }
-  }
+  },
 
   async updatePartner(id, newData, user) {
     try {
@@ -145,7 +135,7 @@ class ClientService {
     } catch (error) {
       throw new Error(`Error al actualizar cliente: ${error.message}`);
     }
-  }
+  },
 
 
   async getClients(company_id, type, user) {
@@ -206,7 +196,7 @@ class ClientService {
         data: [],
       };
     }
-  }
+  },
 
   async getOneClient(id, company_id, type, user) {
     // Iniciar sesión en Odoo
@@ -256,7 +246,7 @@ class ClientService {
         data: [],
       };
     }
-  }
+  },
 
   async createPartner(novoCliente, user) {
     //verificamos la session
@@ -279,7 +269,7 @@ class ClientService {
 
     // Retornamos la lista de clientes
     return { statusCode: 200, message: "Cliente creado exitosamente", data: clients.data };
-  }
+  },
 
   async updateClients(id, novoCliente, companyId, user) {
     try {
@@ -312,7 +302,7 @@ class ClientService {
       console.error("Error al actualizar el cliente:", error);
       return { statusCode: 500, message: "Error interno al procesar la solicitud", data: [] };
     }
-  }
+  },
 
   async deleteClient(id, company_id, user) {
     // Verificamos la sesión
@@ -341,7 +331,7 @@ class ClientService {
       return { statusCode: 500, message: "Error interno al procesar la solicitud", data: [] };
     }
     
-  }
+  },
 
   /**
    * Crea un cliente validando primero si la compañía existe
@@ -375,7 +365,7 @@ class ClientService {
       console.error("Error al validar la compañía:", error);
       return { statusCode: 500, message: "Error al validar la compañía", data: [] };
     }
-  }
+  },
 
   async getProviders(company_id, user) {
     try {
@@ -426,7 +416,7 @@ class ClientService {
         data: [],
       };
     }
-  }
+  },
 
   async getOneProvider(id, company_id, user) {
     try {
@@ -480,7 +470,7 @@ class ClientService {
         data: [],
       };
     }
-  }
+  },
 
   async getPartners(company_id, type, user) {
     try {
@@ -540,4 +530,4 @@ class ClientService {
   }
 }
 
-module.exports = ClientService;
+module.exports = { clientService };

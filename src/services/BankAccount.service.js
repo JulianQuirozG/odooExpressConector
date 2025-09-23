@@ -1,22 +1,17 @@
 const connector = require("../util/odooConector.util.js");
-const BankService = require("./bank.service.js");
+const {bankService} = require("./bank.service.js");
 
-class BankAccountService {
-  constructor() {
-    /** @type {OdooConnector} */
-    this.connector = connector;
-    this.bankService = new BankService();
-  }
+const bankAccountService = {
 
   async createBankAccount(bankAccountData, user) {
     try {
-      const bank = await this.bankService.getBankById(
+      const bank = await bankService.getBankById(
         bankAccountData.bank_id,
         user
       );
 
       if (bank.statusCode === 404) {
-        const createdBank = await this.bankService.createBank(
+        const createdBank = await bankService.createBank(
           { name: bankAccountData.bank_name },
           user
         );
@@ -55,7 +50,7 @@ class BankAccountService {
         data: [],
       };
     }
-  }
+  },
 
   async deleteBankAccount(bankAccountId, user) {
     try {
@@ -88,7 +83,7 @@ class BankAccountService {
         data: [],
       };
     }
-  }
+  },
 
   async getBankAccountByPartnerId(partnerId, acc_number, user) {
     try {
@@ -140,12 +135,12 @@ class BankAccountService {
         data: [],
       };
     }
-  }
+  },
 
   async editBankAccount(id, newData, type, user) {
     try {
       if (type == "add") {
-        const existingBanks = await this.bankService.searchBanksByNameIlike(
+        const existingBanks = await bankService.searchBanksByNameIlike(
           newData.bank_name,
           user
         );
@@ -162,7 +157,7 @@ class BankAccountService {
 
         let bankGet;
         if (existingBanks.statusCode === 404) {
-          bankGet = await this.bankService.createBank(
+          bankGet = await bankService.createBank(
             { name: newData.bank_name },
             user
           );
@@ -180,7 +175,7 @@ class BankAccountService {
         console.log("/////////////////////////////////////")
         console.log("Bank found or created:", bankGet.data);
         console.log("/////////////////////////////////////")
-        const bank = await this.bankService.getBankById(bankGet.data.id, user);
+        const bank = await bankService.getBankById(bankGet.data.id, user);
 
         if (bank.success === false) {
           if (bank.error === true) {
@@ -244,7 +239,7 @@ class BankAccountService {
           message: "Cuenta bancaria eliminada",
           data: partnerAfter.data,
         };
-        
+
       }
       return {
         statusCode: 400,
@@ -263,4 +258,4 @@ class BankAccountService {
   }
 }
 
-module.exports = BankAccountService;
+module.exports = { bankAccountService };

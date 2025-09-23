@@ -1,7 +1,7 @@
 const { ca } = require("zod/locales");
 const connector = require("../util/odooConector.util.js");
 
-class BankService {
+const bankService = {
   // Crear un banco (res.bank)
   async createBank(bankData, user) {
     try {
@@ -51,7 +51,7 @@ class BankService {
         data: [],
       };
     }
-  }
+  },
 
   // Buscar banco por ID
   async getBankById(bankId, user) {
@@ -88,7 +88,7 @@ class BankService {
         data: [],
       };
     }
-  }
+  },
 
   // Buscar bancos por nombre (parcial o exacto)
   async searchBanksByName(name, user) {
@@ -123,7 +123,7 @@ class BankService {
         data: [],
       };
     }
-  }
+  },
 
   async searchBanksByNameIlike(name, user) {
     try {
@@ -160,4 +160,4 @@ class BankService {
   }
 }
 
-module.exports = BankService;
+module.exports = { bankService };

@@ -2,20 +2,8 @@
 
 const connector = require('../util/odooConector.util.js');
 
-class CompanyService {
-    /**
-     * @param {OdooConnector} connector
-     */
-    constructor() {
-        /** @type {OdooConnector} */
-        this.connector = connector;
-    }
+const companyService = {
 
-    /**
-     * Verifica si una compañía existe por su ID
-     * @param {number} companyId
-     * @returns {Promise<boolean>} true si existe, false si no
-     */
     async companyExists(companyId, user) {
         try {
             const domain = [['id', '=', companyId]];
@@ -36,7 +24,7 @@ class CompanyService {
             return { statusCode: 500, error: true, message: "Error al verificar si la compañía existe", data: [] };
         }
 
-    }
+    },
 
     /**
      * Busca una compañía por nombre
@@ -48,13 +36,13 @@ class CompanyService {
             const domain = [['name', '=', name]];
             const fields = ['id', 'name'];
             const companies = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password, 'res.company', 'search_read', [domain], { fields }]);
-            if( companies.success === false) {
-                if(companies.error === true) {
+            if (companies.success === false) {
+                if (companies.error === true) {
                     return { statusCode: 500, message: companies.message, data: {} };
                 }
                 return { statusCode: 400, message: companies.message, data: {} };
             }
-            if(companies.data.length === 0) {
+            if (companies.data.length === 0) {
                 return { statusCode: 404, message: "La compañía no existe", data: {} };
             }
             return { statusCode: 200, message: "Compañía encontrada", data: companies.data[0] };
@@ -62,8 +50,8 @@ class CompanyService {
             console.error("Error al buscar la compañía por nombre:", error);
             return { statusCode: 500, error: true, message: "Error al buscar la compañía por nombre", data: [] };
         }
-        
+
     }
 }
 
-module.exports = CompanyService;
+module.exports = { companyService };

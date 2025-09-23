@@ -7,18 +7,9 @@ const z = require("zod");
 const { pickFields } = require("../util/object.util.js");
 const { PRODUCT_FIELDS } = require("./fields/entityFields.js");
 
-/**
- * @class
- * @param {OdooConnector} connector - Instancia de OdooConnector
- */
-class ProductService {
-  /**
-   * @param {OdooConnector} connector
-   */
-  constructor() {
-    /** @type {OdooConnector} */
-    this.connector = connector;
-  }
+
+const productService = {
+
   // Obtener un producto por ID
   async getProductById(id, user) {
     // Verificamos la sesión
@@ -41,18 +32,18 @@ class ProductService {
         user.password,
         "product.template",
         "search_read",
-        [[["id", "=", Number(id)]]], 
+        [[["id", "=", Number(id)]]],
         { fields },
       ]);
-      
+
       if (product.success === false) {
         if (product.error === true) {
           return { statusCode: 500, message: product.message, data: {} };
         }
         return { statusCode: 400, message: product.message, data: {} };
       }
-      
-      if(product.data.length === 0){
+
+      if (product.data.length === 0) {
         return { statusCode: 404, message: "El producto no existe", data: {} };
       }
 
@@ -61,11 +52,11 @@ class ProductService {
       return {
         statusCode: 500,
         error: true,
-        message: "Error al obtener el producto" + error.message ,
+        message: "Error al obtener el producto" + error.message,
         data: [],
       };
     }
-  }
+  },
 
   async createProduct(newProduct, user) {
     try {
@@ -90,7 +81,7 @@ class ProductService {
       }
       // Retornamos la lista de productos
       const productDetails = await this.getProductById(product.data, user);
-      
+
       if (productDetails.statusCode !== 200) {
         return { statusCode: productDetails.statusCode, message: productDetails.message, data: {} };
       }
@@ -108,15 +99,15 @@ class ProductService {
         data: [],
       };
     }
-  }
+  },
 
   //Falta implementar
   async updateProducts(id, novoProducto, companyId, user) {
     try {
       // Validar que el cliente existe
       const product = await this.getProductById(id, user);
-      if(product.statusCode !== 200){
-        return { statusCode: product.statusCode, message: "El producto no existe"+product.message, data: {} };
+      if (product.statusCode !== 200) {
+        return { statusCode: product.statusCode, message: "El producto no existe" + product.message, data: {} };
       }
       // Intentar realizar la actualización
       const result = await connector.executeOdooQuery("object", "execute_kw", [
@@ -153,4 +144,4 @@ class ProductService {
   }
 }
 
-module.exports = ProductService;
+module.exports = { productService };

@@ -4,22 +4,11 @@ const connector = require("../util/odooConector.util.js");
 const z = require("zod");
 const { BILL_FIELDS, INVOICE_LINE_FIELDS } = require("./fields/entityFields.js");
 const { pickFields } = require("../util/object.util.js");
-const ProductService = require("./product.service.js");
-const ClientService = require("./client.service.js");
-const clientService = new ClientService();
-const productService = new ProductService();
-/**
- * @class
- * @param {OdooConnector} connector - Instancia de OdooConnector
- */
-class BillService {
-  /**
-   * @param {OdooConnector} connector
-   */
-  constructor() {
-    /** @type {OdooConnector} */
-    this.connector = connector;
-  }
+const {productService} = require("./product.service.js");
+const {clientService} = require("./client.service.js");
+
+
+const billService = {
 
   async createBill(newBill, user) {
     try {
@@ -63,7 +52,7 @@ class BillService {
       };
     }
     //verificamos la session
-  }
+  },
 
   async getBillById(billId, type, user) {
     //verificamos la session
@@ -119,7 +108,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
   async updateBill(billId, updatedBill, user) {
     //verificamos la session
@@ -160,7 +149,8 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
+
   async addProductToBill(billId, productLine, user) {
     //verificamos la session
     try {
@@ -206,7 +196,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
   async deleteProductFromBill(billId, productLineId, user) {
     //verificamos la session
@@ -247,7 +237,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
   async confirmBill(billId, user) {
     //verificamos la session
@@ -318,7 +308,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
   async updateBillFull(id, data, user) {
     try {
@@ -384,7 +374,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
   async editRowToBill(billId, rowData, action, user) {
     try {
@@ -423,7 +413,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 
 
   async createBillWithProducts(data, user) {
@@ -493,7 +483,7 @@ class BillService {
         data: [],
       };
     }
-  }
+  },
 }
 
-module.exports = BillService;
+module.exports = { billService };
