@@ -75,3 +75,12 @@ MIT
   - Servicio de conexión a Odoo con login y ejecución de peticiones (`src/services/accounting.service.js`, `src/util/odooConector.util.js`).
   - Validaciones de datos con Zod y middlewares personalizados, para validación de id y del body.
   - Uso de `executeQuery` para interactuar con el modelo `res.partner` de Odoo.
+
+- 2025-09-22  
+  Mejoras y correcciones generales:
+  - Validación de dominios para evitar valores NaN en consultas a Odoo.
+  - Manejo de errores mejorado cuando el usuario o credenciales son undefined.
+  - Refactorización de servicios para asegurar que los métodos reciban siempre datos válidos.
+  - Ejemplo de integración de validaciones previas antes de crear facturas y clientes.
+  - Corrección de campos y dominios en consultas a Odoo para evitar errores de tipo y de integridad referencial.
+  - Documentación de buenas prácticas para manejo de status HTTP y separación de responsabilidades entre servicios y controladores.

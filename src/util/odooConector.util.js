@@ -11,37 +11,6 @@ const ODOO_URL = config.odoo.url;
 
 const OdooConnector = {
 
-    async loginOdoo(username, password, db) {
-        console.log("Conectando a Odoo con:", ODOO_URL);
-        const url = `${ODOO_URL}/jsonrpc`;
-        const payload = {
-            jsonrpc: "2.0",
-            method: "call",
-            params: {
-                service: "common",
-                method: "login",
-                args: [
-                    db,
-                    username,
-                    password
-                ]
-            },
-
-        };
-        try {
-            const response = await client.post(url, payload);
-            console.log(response.data);
-            if (!response.data || !response.data.result) {
-                console.error('Credenciales inválidas.');
-                throw new Error('Credenciales inválidas.');
-            }
-            return response.data.result;
-        } catch (error) {
-            console.error('Error de conexión o autenticación:', error.message);
-            throw new Error(error.message);
-        }
-    },
-
     /**
      * Ejecuta una consulta genérica a Odoo usando JSON-RPC.
      *
@@ -87,45 +56,6 @@ const OdooConnector = {
             return { success: false, error: true, data: error.message, message: 'Error en la consulta a Odoo' };
         }
     },
-
-    async executeQuery(user, model, method, args = [], kwargs = {}) {
-
-        //console.log("Credenciales de usuario:", user);
-        const url = `${ODOO_URL}/jsonrpc`;
-        const payload = {
-            jsonrpc: "2.0",
-            method: "call",
-            params: {
-                service: "object",
-                method: "execute_kw",
-                args: [
-                    user.db,
-                    user.uid,
-                    user.password,
-                    model,
-                    method,
-                    args,
-                    kwargs
-                ]
-            }
-        };
-
-        try {
-            console.log(args);
-            const response = await axios.post(url, payload);
-
-            if (response.data.error) {
-                console.error('Error en la consulta a Odoo:', response.data.error);
-                return null;
-            }
-
-            return response.data.result;
-        } catch (error) {
-            console.error('Error en la ejecución de la consulta:', error.message);
-            return null;
-        }
-    }
-
 }
 
 module.exports = OdooConnector;

@@ -35,48 +35,84 @@ class ExternalApiService {
     this.billService = billService;
   }
 
-  async createBill(data,user) {
+  async createBill(data, user) {
     try {
-      const client = await this.clientService.getOneClient(data.partner_id,undefined,undefined,user);
+      const client = await this.clientService.getOneClient(
+        data.partner_id,
+        undefined,
+        undefined,
+        user
+      );
 
-      if (!client) {
-        throw new Error(
-          "El cliente al que intenta asignar la factura no existe"
-        );
+      if (client.error === true) {
+        return { statusCode: 500, message: client.message, data: {} };
       }
 
+      if(client.statusCode === 404){
+        return { statusCode: 404, message: client.message, data: {} };
+      }
       const billId = await this.billService.createBill(
-        pickFields(data, BILL_FIELDS),user
+        pickFields(data, BILL_FIELDS),
+        user
       );
+
+      if (billId.error === true) {
+        return { statusCode: 500, message: billId.message, data: {} };
+      }
+      if(billId.statusCode === 400){
+        return { statusCode: 400, message: billId.message, data: {} };
+      }
+
       let productsInvalid = [];
       if (data.invoice_line_ids?.length > 0) {
         for (const line of data.invoice_line_ids) {
-          const product = await this.productService.getProductById(line.product_id,user);
-          if (!product) {
-            productsInvalid.push([`El producto con ID ${line.product_id} no existe`]);
+          const product = await this.productService.getProductById(
+            line.product_id,
+            user
+          );
+          if (product.statusCode === 404) {
+            productsInvalid.push([
+              `El producto con ID ${line.product_id} no existe`,
+            ]);
           } else {
             await this.billService.addProductToBill(
               billId.id,
-              pickFields(line, INVOICE_LINE_FIELDS),user
+              pickFields(line, INVOICE_LINE_FIELDS),
+              user
             );
           }
-
         }
       }
-      let message = '';
-      const bill = await this.billService.getBillById(billId.id,undefined,user);
-      if (productsInvalid.length > 0) {
-        message = `La facura se creo correctamente, pero hay algunos productos que no existian: ${productsInvalid.flat().join('; ')}`;
+      let message = "";
+      const bill = await this.billService.getBillById(
+        billId.id,
+        undefined,
+        user
+      );
+
+      if(bill.statusCode === 400){
+        return { statusCode: 400, message: bill.message, data: {} };
       }
-      return { message, bill };
+      if (productsInvalid.length > 0) {
+        message = `La facura se creo correctamente, pero hay algunos productos que no existian: ${productsInvalid
+          .flat()
+          .join("; ")}`;
+      }
+      return {statusCode: 200, message, data: bill.data };
     } catch (error) {
-      throw new Error(`Error al crear factura: ${error.message}`);
+      console.error("Error al crear la factura:", error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error al crear la factura",
+        data: [],
+      };
     }
   }
 
-  async getBillById(billId,user) {
+  async getBillById(billId, user) {
     try {
-      const bill = await this.billService.getBillById(billId,undefined,user);
+      const bill = await this.billService.getBillById(billId, undefined, user);
       if (!bill) {
         throw new Error("La factura no existe");
       }
@@ -86,49 +122,55 @@ class ExternalApiService {
     }
   }
 
-  async updateBill(id, data,user) {
+  async updateBill(id, data, user) {
     try {
-      const bill = await this.billService.getBillById(id, "draft",user);
+      const bill = await this.billService.getBillById(id, "draft", user);
       if (!bill) {
         throw new Error("La factura no existe o no es un borrador");
       }
       const updatedBill = await this.billService.updateBill(
         id,
-        pickFields(data, BILL_FIELDS),user
+        pickFields(data, BILL_FIELDS),
+        user
       );
 
       if (!updatedBill) {
-        throw new Error('No se pudo editar la factura. Verifica que esté en estado draft.');
+        throw new Error(
+          "No se pudo editar la factura. Verifica que esté en estado draft."
+        );
       }
       let productsInvalid = [];
       if (data.invoice_line_ids?.length >= 0) {
         // eliminamos todas las líneas actuales
         if (bill.invoice_line_ids?.length > 0) {
-
-          await Promise.all(bill.invoice_line_ids.map(async (line) => {
-            console.log("Deleting line:", line);
-            await this.billService.deleteProductFromBill(
-              id,
-              line,user
-            );
-          }));
+          await Promise.all(
+            bill.invoice_line_ids.map(async (line) => {
+              console.log("Deleting line:", line);
+              await this.billService.deleteProductFromBill(id, line, user);
+            })
+          );
         }
-        
-        await Promise.all(data.invoice_line_ids.map(async (line) => {
-          if (await this.productService.getProductById(line.product_id,user)) {
-            await this.billService.addProductToBill(
-              id,
-              pickFields(line, INVOICE_LINE_FIELDS),user
-            );
-          }
-          else {
-            productsInvalid.push([`El producto con ID ${line.product_id} no existe`]);
-          }
-          
-        }));
+
+        await Promise.all(
+          data.invoice_line_ids.map(async (line) => {
+            if (
+              await this.productService.getProductById(line.product_id, user)
+            ) {
+              await this.billService.addProductToBill(
+                id,
+                pickFields(line, INVOICE_LINE_FIELDS),
+                user
+              );
+            } else {
+              productsInvalid.push([
+                `El producto con ID ${line.product_id} no existe`,
+              ]);
+            }
+          })
+        );
       }
 
-      const billAfter = await this.billService.getBillById(id,undefined,user);
+      const billAfter = await this.billService.getBillById(id, undefined, user);
 
       return { billAfter, productsInvalid };
     } catch (error) {
@@ -136,35 +178,37 @@ class ExternalApiService {
     }
   }
 
-  async confirmBill(billId,user) {
+  async confirmBill(billId, user) {
     try {
-      const bill = await this.billService.getBillById(billId, "draft",user);
+      const bill = await this.billService.getBillById(billId, "draft", user);
       if (!bill) {
         throw new Error("La factura no existe o no está en estado borrador");
       }
-      const result = await this.billService.confirmBill(billId,user);
+      const result = await this.billService.confirmBill(billId, user);
       return result;
     } catch (error) {
       throw new Error(`Error al confirmar la factura: ${error.message}`);
     }
   }
 
-  async editRowToBill(billId, rowData, action, productService,user) {
+  async editRowToBill(billId, rowData, action, productService, user) {
     try {
       let result;
       if (action === "add") {
         const product = await this.productService.getProductById(
-          rowData.product_id,user
+          rowData.product_id,
+          user
         );
         if (!product) throw new Error("El producto no existe");
-        result = await this.billService.addProductToBill(billId, rowData,user);
+        result = await this.billService.addProductToBill(billId, rowData, user);
       } else if (action === "delete") {
         result = await this.billService.deleteProductFromBill(
           billId,
-          rowData.id,user
+          rowData.id,
+          user
         );
       }
-      return await this.billService.getBillById(billId,undefined,user);
+      return await this.billService.getBillById(billId, undefined, user);
     } catch (error) {
       throw new Error(`Error al editar fila de la factura: ${error.message}`);
     }

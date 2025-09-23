@@ -4,7 +4,6 @@ const connector = require("../util/odooConector.util.js");
 const clientSchema = require("../schemas/client.schema.js");
 const updateClientSchema = require("../schemas/clientUpdate.schema.js");
 const z = require("zod");
-const CompanyService = require("./company.service.js");
 const { pickFields } = require("../util/object.util.js");
 const { PRODUCT_FIELDS } = require("./fields/entityFields.js");
 
@@ -21,10 +20,9 @@ class ProductService {
     this.connector = connector;
   }
   // Obtener un producto por ID
-  async getProductById(id,user) {
+  async getProductById(id, user) {
     // Verificamos la sesión
     try {
-
       const fields = [
         "name",
         "default_code",
@@ -36,81 +34,123 @@ class ProductService {
         "description",
         "company_id",
       ];
-      const product = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const product = await connector.executeOdooQuery("object", "execute_kw", [
+        user.db,
+        user.uid,
+        user.password,
         "product.template",
         "search_read",
         [[["id", "=", Number(id)]]], // Dominio correcto
-        { fields }
+        { fields },
       ]);
 
-      return product[0];
+      if (product.success === false) {
+        if (product.error === true) {
+          return { statusCode: 500, message: product.message, data: {} };
+        }
+        return { statusCode: 400, message: product.message, data: {} };
+      }
+
+      if(product.data.length === 0){
+        return { statusCode: 404, message: "El producto no existe", data: {} };
+      }
+
+      return { statusCode: 200, message: "Producto obtenido exitosamente", data: product.data[0] };
     } catch (error) {
-      throw new Error("Error al obtener el producto", error.message);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error al obtener el producto",
+        data: [],
+      };
     }
   }
 
-  async createProduct(newProduct,user) {
+  async createProduct(newProduct, user) {
     try {
       //verificamos la session
-      const productData = pickFields(newProduct, PRODUCT_FIELDS)
+      const productData = pickFields(newProduct, PRODUCT_FIELDS);
       // Realizamos la consulta a Odoo
-      const product = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const product = await connector.executeOdooQuery("object", "execute_kw", [
+        user.db,
+        user.uid,
+        user.password,
         "product.template",
         "create",
         [productData],
-        {}
+        {},
       ]);
 
-      if (!product) {
-        throw new Error("Error al obtener la lista de productos desde Odoo");
+      if (product.success === false) {
+        if (product.error === true) {
+          return { statusCode: 500, message: product.message, data: {} };
+        }
+        return { statusCode: 400, message: product.message, data: {} };
       }
 
       // Retornamos la lista de productos
-      const productDetails = await this.getProductById(product,user);
-      
-      return productDetails;
+      const productDetails = await this.getProductById(product, user);
+
+      if (productDetails.error === true) {
+        return { statusCode: 500, message: productDetails.message, data: {} };
+      }
+      if (productDetails.statusCode === 404) {
+        return { statusCode: productDetails.statusCode, message: productDetails.message, data: {} };
+      }
+      return {
+        statusCode: 200,
+        message: "Producto creado exitosamente",
+        data: productDetails.data,
+      };
     } catch (error) {
-      throw new Error("Error al obtener el producto", error.message);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error al crear el producto",
+        data: [],
+      };
     }
   }
 
   //Falta implementar
-  async updateProducts(id, novoProducto, companyId,user) {
+  async updateProducts(id, novoProducto, companyId, user) {
     try {
-      // Verificamos la sesión
-
-      //console.log('Datos a actualizar:', novoCliente);
-
       // Validar que el cliente existe
-      const client = await this.getOneClient(id, companyId, undefined,user);
-      if (!client) {
-        throw new Error("Cliente no encontrado o no es un cliente válido");
+      const product = await this.getProductById(id, user);
+      if(product.statusCode === 404){
+        return { statusCode: 404, message: "El producto no existe", data: {} };
       }
-
-      console.log("Cliente encontrado para actualizar:", client);
-
       // Intentar realizar la actualización
-      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,"res.partner", "write", [
-        ["id", "=", Number(id)],
-        novoCliente,
-      ]]);
+      const result = await connector.executeOdooQuery("object", "execute_kw", [
+        user.db,
+        user.uid,
+        user.password,
+        "res.partner",
+        "write",
+        [["id", "=", Number(id)], novoCliente],
+      ]);
 
-      if (!result) {
-        throw new Error("Error al actualizar el cliente en Odoo");
+      if (result.success === false) {
+        if (result.error === true) {
+          return { statusCode: 500, message: result.message, data: {} };
+        }
+        return { statusCode: 400, message: result.message, data: {} };
       }
 
-      return result;
+      return {
+        statusCode: 200,
+        message: "Cliente actualizado exitosamente",
+        data: result.data,
+      };
     } catch (error) {
       // Manejar errores específicos de Odoo
-      if (
-        error.message &&
-        error.message.includes("Record does not exist or has been deleted")
-      ) {
-        throw new Error("El cliente no existe o ha sido eliminado en Odoo");
-      }
-
       console.error("Error al actualizar el cliente:", error);
-      throw error; // Propagar otros errores
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error al actualizar el cliente",
+        data: [],
+      };
     }
   }
 }

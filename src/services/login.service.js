@@ -1,6 +1,7 @@
 const connector = require('../util/odooConector.util');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config.js');
+const { success } = require('zod');
 
 const loginService = {
 
@@ -13,17 +14,20 @@ const loginService = {
             console.log("Intentando conectar a Odoo con:", { username, db });
             const response = await connector.executeOdooQuery("common","login",[db, username, password]);
             //console.log(response);
-            if (!response) {
-                throw new Error('Credenciales inválidas.');
+            if (response.success === false) {
+                if(response.error === true){
+                    return {statusCode:500, message: response.message, data: {}};
+                }
+                return {statusCode:400, message: response.message, data: {}};
             }
 
             // Generar el token JWT
-            const payload = { username, db, uid: response, password }
+            const payload = { username, db, uid: response.data, password }
             const token = jwt.sign(payload, config.odoo.secret, { expiresIn: '4h' });
-            return token;
+            return {statusCode:200, message: 'Login exitoso', data: { token }};
         } catch (error) {
             console.error('Error de conexión o autenticación:', error.message);
-            throw new Error(error.message);
+            return {statusCode:500, message: 'Error de conexión o autenticación: ' + error.message, data: []};
         }
     }
 }
