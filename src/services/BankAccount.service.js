@@ -14,11 +14,16 @@ class BankAccountService {
         bankAccountData.bank_id,
         user
       );
-      if (!bank.data) {
-        await this.bankService.createBank(
+
+      if (bank.statusCode === 404) {
+        const createdBank = await this.bankService.createBank(
           { name: bankAccountData.bank_name },
           user
         );
+
+        if (createdBank.statusCode !== 200) {
+          return { statusCode: createdBank.statusCode, message: createdBank.message, data: {} };
+        }
       }
       bankAccountData.bank_id = Number(bankAccountData.bank_id);
       bankAccountData.partner_id = Number(bankAccountData.partner_id);
@@ -117,6 +122,10 @@ class BankAccountService {
         }
         return { statusCode: 400, message: result.message, data: {} };
       }
+      if (result.data.length === 0) {
+        return { statusCode: 404, message: "La cuenta bancaria no existe", data: [] };
+      }
+
       return {
         statusCode: 200,
         message: "Cuenta bancaria obtenida",
@@ -135,13 +144,6 @@ class BankAccountService {
 
   async editBankAccount(id, newData, type, user) {
     try {
-      const client = await this.getOneClient(id, undefined, undefined, user);
-      if (client.success === false) {
-        if (client.error === true) {
-          return { statusCode: 500, message: client.message, data: {} };
-        }
-        return { statusCode: 400, message: client.message, data: {} };
-      }
       if (type == "add") {
         const existingBanks = await this.bankService.searchBanksByNameIlike(
           newData.bank_name,
@@ -152,35 +154,43 @@ class BankAccountService {
             return {
               statusCode: 500,
               message: existingBanks.message,
-              data: {},
+              data: [],
             };
           }
-          return { statusCode: 400, message: existingBanks.message, data: {} };
+          return { statusCode: 400, message: existingBanks.message, data: [] };
         }
 
         let bankGet;
-        if (existingBanks?.length === 0) {
+        if (existingBanks.statusCode === 404) {
           bankGet = await this.bankService.createBank(
             { name: newData.bank_name },
             user
           );
           if (bankGet.success === false) {
             if (bankGet.error === true) {
-              return { statusCode: 500, message: bankGet.message, data: {} };
+              return { statusCode: 500, message: bankGet.message, data: [] };
             }
-            return { statusCode: 400, message: bankGet.message, data: {} };
+            return { statusCode: 400, message: bankGet.message, data: [] };
           }
+
         } else {
-          bankGet = existingBanks[0];
+          bankGet = existingBanks;
         }
-        console.log("Bank found or created:", bankGet);
-        const bank = await this.bankService.getBankById(bankGet.id, user);
+
+        console.log("/////////////////////////////////////")
+        console.log("Bank found or created:", bankGet.data);
+        console.log("/////////////////////////////////////")
+        const bank = await this.bankService.getBankById(bankGet.data.id, user);
 
         if (bank.success === false) {
           if (bank.error === true) {
-            return { statusCode: 500, message: bank.message, data: {} };
+            return { statusCode: 500, message: bank.message, data: [] };
           }
-          return { statusCode: 400, message: bank.message, data: {} };
+          return { statusCode: 400, message: bank.message, data: [] };
+        }
+
+        if (bank.statusCode === 404) {
+          return { statusCode: bank.statusCode, message: "No se pudo obtener o crear el banco", data: [] };
         }
 
         const bankAccountData = pickFields(newData, BANK_ACCOUNT_FIELDS);
@@ -188,29 +198,19 @@ class BankAccountService {
         bankAccountData.bank_id = Number(bank.id);
         bankAccountData.bank_name = bank.name;
 
-        const updatedAccount = await this.bankAccountService.createBankAccount(
+        const updatedAccount = await this.createBankAccount(
           bankAccountData,
           user
         );
 
-        if (updatedAccount.success === false) {
-          if (updatedAccount.error === true) {
-            return {
-              statusCode: 500,
-              message: updatedAccount.message,
-              data: {},
-            };
-          }
-          return { statusCode: 400, message: updatedAccount.message, data: {} };
+        if (updatedAccount.statusCode !== 200) {
+          return { statusCode: updatedAccount.statusCode, message: `No se pudo crear la cuenta bancaria ${updatedAccount.message}`, data: [] };
         }
-        const partnerAfter =
-          await this.bankAccountService.getBankAccountByPartnerId(id, user);
 
-        if (partnerAfter.success === false) {
-          if (partnerAfter.error === true) {
-            return { statusCode: 500, message: partnerAfter.message, data: {} };
-          }
-          return { statusCode: 400, message: partnerAfter.message, data: {} };
+        const partnerAfter = await this.getBankAccountByPartnerId(id, user);
+
+        if (updatedAccount.statusCode !== 200) {
+          return { statusCode: updatedAccount.statusCode, message: `No se pudo actualizar la cuenta bancaria ${updatedAccount.message}`, data: [] };
         }
 
         return {
@@ -221,31 +221,22 @@ class BankAccountService {
       } else if (type == "delete") {
         const partner = await this.getOneClient(id, undefined, undefined, user);
 
-        if (partner.success === false) {
-          if (partner.error === true) {
-            return { statusCode: 500, message: partner.message, data: {} };
-          }
-          return { statusCode: 400, message: partner.message, data: {} };
+        if(partner.statusCode !== 200){
+          return { statusCode: partner.statusCode, message: partner.message, data: [] };
         }
 
-        const deleted = await this.bankAccountService.deleteBankAccount(
+        const deleted = await this.deleteBankAccount(
           newData.id,
           user
         );
-        if (deleted.success === false) {
-          if (deleted.error === true) {
-            return { statusCode: 500, message: deleted.message, data: {} };
-          }
-          return { statusCode: 400, message: deleted.message, data: {} };
+
+        if (deleted.statusCode !== 200) {
+          return { statusCode: deleted.statusCode, message: `No se pudo eliminar la cuenta bancaria: ${deleted.message}`, data: [] };
         }
 
-        const partnerAfter =
-          await this.bankAccountService.getBankAccountByPartnerId(id, user);
-        if (partnerAfter.success === false) {
-          if (partnerAfter.error === true) {
-            return { statusCode: 500, message: partnerAfter.message, data: {} };
-          }
-          return { statusCode: 400, message: partnerAfter.message, data: {} };
+        const partnerAfter = await this.getBankAccountByPartnerId(id, user);
+        if (partnerAfter.statusCode !== 200) {
+          return { statusCode: partnerAfter.statusCode, message: `No se pudo actualizar la cuenta bancaria: ${partnerAfter.message}`, data: [] };
         }
 
         return {
@@ -253,6 +244,7 @@ class BankAccountService {
           message: "Cuenta bancaria eliminada",
           data: partnerAfter.data,
         };
+        
       }
       return {
         statusCode: 400,

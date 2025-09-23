@@ -36,6 +36,10 @@ class ClientService {
         pickFields(data, fields), user
       );
 
+      if (clientId.statusCode !== 200) {
+        return { statusCode: clientId.statusCode, message: `No se pudo crear el cliente: ${clientId.message}`, data: [] };
+      }
+
       // 2. validar que los bancos existan o crearlos
       const results = [];
       const bankAccounts = [];
@@ -49,21 +53,21 @@ class ClientService {
 
           let bank = [];
           // Si no existe el banco, crearlo
-          if (!banks || banks.length == 0) {
+          if (banks.statusCode === 404) {
             console.log("Creating bank:", account.bank?.bank_name);
 
             const bankId = await this.bankService.createBank({
               name: account.bank?.bank_name,
             }, user);
 
-            bank = { id: bankId };
+            bank = { id: bankId.data[0] };
           } else {
-            bank = banks[0];
+            bank = banks.data[0];
           }
 
           // Crear cuenta bancaria
           const bankAccountData = pickFields(account, BANK_ACCOUNT_FIELDS);
-          bankAccountData.partner_id = clientId;
+          bankAccountData.partner_id = clientId.data;
           bankAccountData.bank_id = bank.id;
           bankAccountData.bank_name = bank.name;
           console.log("Creating bank account:", bankAccountData);
@@ -74,7 +78,7 @@ class ClientService {
               bankAccountData, user
             );
             results.push({
-              partner_id: clientId,
+              partner_id: clientId.data,
               bank_id: bank.id,
               bank_account_id: bankAccountId,
             });
@@ -85,30 +89,40 @@ class ClientService {
       }
       // 3. Retornar resultado
       const partner = await this.getOneClient(clientId, undefined, undefined, user);
+
+      if (partner.statusCode !== 200) {
+        return { statusCode: partner.statusCode, message: `No se pudo obtener el cliente creado: ${partner.message}`, data: [] };
+      }
       return {
-        partner,
-        bankAccountResults: results,
-        bankAccountInvalid: bankAccountInvalid
+        statusCode: 200, message: "Cliente y cuentas bancarias creadas exitosamente", data: [{
+          partner,
+          bankAccountResults: results,
+          bankAccountInvalid: bankAccountInvalid
+        }]
       };
     } catch (error) {
       // Puedes personalizar el error o simplemente relanzarlo
-      throw new Error(
-        `Error al crear cliente y cuentas bancarias: ${error.message}`
-      );
+      console.error("Error al crear cliente con cuentas bancarias:", error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error al crear cliente con cuentas bancarias",
+        data: [],
+      };
     }
   }
 
   async updatePartner(id, newData, user) {
     try {
       const client = await this.getOneClient(id, undefined, undefined, user);
-      if (!client) {
-        throw new Error("El cliente no existe o no es un cliente válido");
+      if (client.statusCode !== 200) {
+        return { statusCode: client.statusCode, message: client.message, data: [] };
       }
 
       if (newData.company_id) {
         const company = await this.companyService.companyExists(newData.company_id, user);
-        if (!company) {
-          throw new Error("La compañía especificada no existe");
+        if (company.statusCode !== 200) {
+          return { statusCode: company.statusCode, message: "La compañía especificada no existe" + company.message, data: [] };
         }
       }
 
@@ -117,9 +131,17 @@ class ClientService {
         pickFields(newData, [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])]), user
       );
 
+      if (updatedClient.statusCode !== 200) {
+        return { statusCode: updatedClient.statusCode, message: `No se pudo actualizar el cliente: ${updatedClient.message}`, data: [] };
+      }
+
       const partner = await this.getOneClient(updatedClient.id, undefined, undefined, user);
 
-      return partner;
+      if (partner.statusCode !== 200) {
+        return { statusCode: partner.statusCode, message: `No se pudo obtener el cliente actualizado: ${partner.message}`, data: [] };
+      }
+
+      return { statusCode: 200, message: "Cliente actualizado exitosamente", data: partner.data };
     } catch (error) {
       throw new Error(`Error al actualizar cliente: ${error.message}`);
     }
@@ -157,71 +179,82 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const clients = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
         "res.partner",
         "search_read",
-        [domain],
-        { fields }
+      [domain],
+      { fields }
       ]);
+      console.log(clients);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
-      if (!clients) {
-        throw new Error("No hay clientes registrados en el sistema");
+      if (clients.success === false) {
+        if (clients.error === true) {
+          return { statusCode: 500, message: clients.message, data: {} };
+        }
+        return { statusCode: 400, message: clients.message, data: [] };
       }
 
       // Retornamos la lista de clientes
-      return clients;
+      return { statusCode: 200, message: "Clientes encontrados", data: clients.data };
     } catch (error) {
       // Aquí manejamos los posibles errores
-      if (error.message === "No se pudo conectar a Odoo") {
-        // Error al conectar con el servicio externo (Odoo), responder con 503
-        throw { status: 503, message: error.message };
-      }
-
-      if (error.message === "No hay clientes registrados en el sistema") {
-        // No hay clientes registrados, responder con 404
-        throw { status: 404, message: error.message };
-      }
-
-      // Si es un error no esperado, responder con 500 (Internal Server Error)
-      throw { status: 500, message: "Error interno al procesar la solicitud" };
+      console.log(error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error interno al procesar la solicitud",
+        data: [],
+      };
     }
   }
 
   async getOneClient(id, company_id, type, user) {
     // Iniciar sesión en Odoo
-
-    // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
-    let domain = [["id", "=", Number(id)]];
-    if (company_id && isNaN(company_id)) {
-      domain.push(["company_id", "=", Number(company_id)]);
-    }
-    if (type && type === "provider") {
-      domain.push(["supplier_rank", ">", 0]);
-    } else if (type && type === "client") {
-      domain.push(["customer_rank", ">", 0]);
-    }
-
-    const fields = ["id", "name", "vat", "street", "city", "country_id", "phone", "mobile", "email", "website", "lang", "category_id", "company_id", "is_company", "company_type", "street2", "zip", "supplier_rank", "customer_rank", "parent_id",]; // Campos que deseas traer
-    console.log("Dominio usado:", domain);
     try {
+      // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
+      let domain = [["id", "=", Number(id)]];
+      if (company_id && isNaN(company_id)) {
+        domain.push(["company_id", "=", Number(company_id)]);
+      }
+      if (type && type === "provider") {
+        domain.push(["supplier_rank", ">", 0]);
+      } else if (type && type === "client") {
+        domain.push(["customer_rank", ">", 0]);
+      }
+
+      const fields = ["id", "name", "vat", "street", "city", "country_id", "phone", "mobile", "email", "website", "lang", "category_id", "company_id", "is_company", "company_type", "street2", "zip", "supplier_rank", "customer_rank", "parent_id",]; // Campos que deseas traer
+      console.log("Dominio usado:", domain);
+
       // Realizamos la consulta a Odoo
-      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const clients = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
         "res.partner",
         "search_read",
-        [domain],
-        { fields }
+      [domain],
+      { fields }
       ]);
       console.log(clients);
       // Si no se encuentran clientes, devolvemos un error
-      if (!clients || clients.length === 0) {
-        throw new Error("Cliente no encontrado");
+      if (clients.error === true) {
+        if (clients.error === true) {
+          return { statusCode: 500, message: clients.message, data: [] };
+        }
+        return { statusCode: 400, message: clients.message, data: [] };
+      }
+      if(clients.data.length === 0){
+        return { statusCode: 404, message: "El cliente no existe", data: [] };
       }
 
       // Retornamos el cliente encontrado
-      return clients[0]; // Asumiendo que el ID es único, se retorna el primer cliente
+      return { statusCode: 200, message: "Cliente encontrado", data: clients.data[0] };
     } catch (error) {
       // Propagar el error si es necesario
-      throw new Error(`${error.message}`);
+      console.error("Error al obtener el cliente:", error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error interno al procesar la solicitud",
+        data: [],
+      };
     }
   }
 
@@ -229,19 +262,23 @@ class ClientService {
     //verificamos la session
     console.log(novoCliente);
     // Realizamos la consulta a Odoo
-    const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+    const clients = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
       "res.partner",
       "create",
-      [novoCliente],
-      {}
+    [novoCliente],
+    {}
     ]);
 
-    if (!clients) {
-      throw new Error("Error al obtener la lista de clientes desde Odoo");
+    if (clients.success === false) {
+      if (clients.error === true) {
+        return { statusCode: 500, message: clients.message, data: {} };
+      }
+      return { statusCode: 400, message: clients.message, data: {} };
     }
 
+
     // Retornamos la lista de clientes
-    return clients;
+    return { statusCode: 200, message: "Cliente creado exitosamente", data: clients.data };
   }
 
   async updateClients(id, novoCliente, companyId, user) {
@@ -251,55 +288,59 @@ class ClientService {
       // Validar que el cliente existe
 
       const client = await this.getOneClient(id, companyId, undefined, user);
-      if (!client) {
-        throw new Error("Cliente no encontrado o no es un cliente válido");
+      if (client.statusCode !== 200) {
+        return { statusCode: client.statusCode, message: client.message, data: [] };
       }
 
       //console.log('Cliente encontrado para actualizar:', client);
 
       // Intentar realizar la actualización
-      const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password, "res.partner", "write", [
+      const result = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password, "res.partner", "write", [
         [Number(id)],
         novoCliente,
       ]]);
-
-      if (!result) {
-        throw new Error("Error al actualizar el cliente en Odoo");
+      if (result.success === false) {
+        if (result.error === true) {
+          return { statusCode: 500, message: result.message, data: {} };
+        }
+        return { statusCode: 400, message: result.message, data: {} };
       }
+      const clientGet = await this.getOneClient(id, undefined, undefined, user);
+      return { statusCode: 200, message: "Cliente actualizado exitosamente", data: clientGet.data };
 
-      return await this.getOneClient(id, undefined, undefined, user);
     } catch (error) {
-      // Manejar errores específicos de Odoo
-      if (
-        error.message &&
-        error.message.includes("Record does not exist or has been deleted")
-      ) {
-        throw new Error("El cliente no existe o ha sido eliminado en Odoo");
-      }
-
       console.error("Error al actualizar el cliente:", error);
-      throw error; // Propagar otros errores
+      return { statusCode: 500, message: "Error interno al procesar la solicitud", data: [] };
     }
   }
 
   async deleteClient(id, company_id, user) {
     // Verificamos la sesión
+    try {
+      const ids = await this.getOneClient(Number(id), Number(company_id), undefined, user);
+      if (ids.statusCode !== 200) {
+        return { statusCode: ids.statusCode, message: "Cliente no encontrado o no es un cliente válido" + ids.message, data: [] };
+      }
+      console.log("ID del cliente a eliminar:", ids.data);
+      // En vez de eliminar, actualizamos el campo 'active' a false para archivar
+      const result = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password, "res.partner", "write", [
+        [ids.data.id],
+        { active: false },
+      ]]);
 
-    const ids = await this.getOneClient(Number(id), Number(company_id), undefined, user);
-    if (!ids) {
-      throw new Error("Cliente no encontrado o no es un cliente válido");
+      if (result.success ===  false) {
+        if (result.error === true) {
+          return { statusCode: 500, message: result.message, data: {} };
+        }
+        return { statusCode: 400, message: result.message, data: {} };
+      }
+
+      return { statusCode: 200, message: "Cliente archivado exitosamente", data: ids.data };
+    } catch (error) {
+      console.error("Error al archivar el cliente:", error);
+      return { statusCode: 500, message: "Error interno al procesar la solicitud", data: [] };
     }
-    // En vez de eliminar, actualizamos el campo 'active' a false para archivar
-    const result = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password, "res.partner", "write", [
-      [ids.id],
-      { active: false },
-    ]]);
-
-    if (!result) {
-      throw new Error("Error al archivar el cliente");
-    }
-
-    return ids;
+    
   }
 
   /**
@@ -316,22 +357,24 @@ class ClientService {
     user
   ) {
     const companyId = novoCliente.company_id;
-
-    if (companyId) {
-      try {
+    try {
+      if (companyId) {
         const exists = await companyService.companyExists(companyId, user);
-        if (!exists) {
-          throw { status: 404, message: "La compañía especificada no existe" };
+        if (exists.statusCode !== 200) {
+          return { statusCode: exists.statusCode, message: "La compañía especificada no existe" + exists.message, data: [] };
         }
-      } catch (error) {
-        console.error("Error al validar la compañía:", error);
-        throw new Error("Error al validar la compañía");
       }
+
+      const updateClients = await this.updateClients(id, novoCliente, companyIdSearch, user);
+      if (updateClients.statusCode !== 200) {
+        return { statusCode: updateClients.statusCode, message: `No se pudo actualizar el cliente: ${updateClients.message}`, data: [] };
+      }
+      return { statusCode: 200, message: "Cliente actualizado exitosamente", data: updateClients.data };
+
+    } catch (error) {
+      console.error("Error al validar la compañía:", error);
+      return { statusCode: 500, message: "Error al validar la compañía", data: [] };
     }
-
-    // Si la compañía es válida o no se proporcionó, procedemos a editar el cliente
-
-    return await this.updateClients(id, novoCliente, companyIdSearch, user);
   }
 
   async getProviders(company_id, user) {
@@ -361,83 +404,81 @@ class ClientService {
       ]; // Campos que deseas traer
 
       // Realizamos la consulta a Odoo
-      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const clients = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
         "res.partner",
         "search_read",
-        [domain],
-        { fields }
+      [domain],
+      { fields }
       ]);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
-      if (!clients) {
-        throw new Error("No hay clientes registrados en el sistema");
+      if (clients.statusCode !== 200) {
+        return { statusCode: clients.statusCode, message: clients.message, data: [] };
       }
 
       // Retornamos la lista de clientes
-      return clients;
+      return { statusCode: 200, message: "Proveedores encontrados", data: clients.data };
     } catch (error) {
-      // Aquí manejamos los posibles errores
-      if (error.message === "No se pudo conectar a Odoo") {
-        // Error al conectar con el servicio externo (Odoo), responder con 503
-        throw { status: 503, message: error.message };
-      }
-
-      if (error.message === "No hay clientes registrados en el sistema") {
-        // No hay clientes registrados, responder con 404
-        throw { status: 404, message: error.message };
-      }
-
-      // Si es un error no esperado, responder con 500 (Internal Server Error)
-      throw { status: 500, message: "Error interno al procesar la solicitud" };
+      console.log(error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error interno al procesar la solicitud",
+        data: [],
+      };
     }
   }
 
   async getOneProvider(id, company_id, user) {
-    // Iniciar sesión en Odoo
-
-    // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
-    let domain = [
-      ["supplier_rank", ">", 0],
-      ["id", "=", Number(id)],
-    ];
-    if (company_id && isNaN(company_id)) {
-      domain.push(["company_id", "=", Number(company_id)]);
-    }
-
-    const fields = [
-      "id",
-      "name",
-      "vat",
-      "street",
-      "city",
-      "country_id",
-      "phone",
-      "mobile",
-      "email",
-      "website",
-      "lang",
-      "category_id",
-      "company_id",
-    ]; // Campos que deseas traer
-    console.log("Dominio usado:", domain);
     try {
+      // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
+      let domain = [
+        ["supplier_rank", ">", 0],
+        ["id", "=", Number(id)],
+      ];
+      if (company_id && isNaN(company_id)) {
+        domain.push(["company_id", "=", Number(company_id)]);
+      }
+
+      const fields = [
+        "id",
+        "name",
+        "vat",
+        "street",
+        "city",
+        "country_id",
+        "phone",
+        "mobile",
+        "email",
+        "website",
+        "lang",
+        "category_id",
+        "company_id",
+      ]; // Campos que deseas traer
+      console.log("Dominio usado:", domain);
       // Realizamos la consulta a Odoo
-      const clients = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const clients = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
         "res.partner",
         "search_read",
-        [domain],
-        { fields }
+      [domain],
+      { fields }
       ]);
-      console.log(clients);
+      console.log(clients.data);
       // Si no se encuentran clientes, devolvemos un error
-      if (!clients || clients.length === 0) {
-        throw new Error("Cliente no encontrado");
+      if (clients.statusCode !== 200) {
+        return { statusCode: clients.statusCode, message: clients.message, data: [] };
       }
 
       // Retornamos el cliente encontrado
-      return clients[0]; // Asumiendo que el ID es único, se retorna el primer cliente
+      return { statusCode: 200, message: "Cliente encontrado", data: clients.data[0] }; // Asumiendo que el ID es único, se retorna el primer cliente
     } catch (error) {
       // Propagar el error si es necesario
-      throw new Error(`${error.message}`);
+      console.log("Error al obtener el cliente:", error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error interno al procesar la solicitud",
+        data: [],
+      };
     }
   }
 
@@ -477,24 +518,24 @@ class ClientService {
         "company_id",
       ];
 
-      const partners = await connector.executeOdooQuery("object","execute_kw",[user.db,user.uid,user.password,
+      const partners = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password,
         "res.partner",
         "search_read",
-        [domain],
-        { fields }
+      [domain],
+      { fields }
       ]);
-      if (!partners) {
-        throw new Error("No hay registros en el sistema");
+      if (partners.statusCode !== 200) {
+        return { statusCode: partners.statusCode, message: partners.message, data: [] };
       }
-      return partners;
+      return { statusCode: 200, message: "Partners encontrados", data: partners.data };
     } catch (error) {
-      if (error.message === "No se pudo conectar a Odoo") {
-        throw { status: 503, message: error.message };
-      }
-      if (error.message === "No hay registros en el sistema") {
-        throw { status: 404, message: error.message };
-      }
-      throw { status: 500, message: "Error interno al procesar la solicitud" };
+      console.log(error);
+      return {
+        statusCode: 500,
+        error: true,
+        message: "Error interno al procesar la solicitud",
+        data: [],
+      };
     }
   }
 }

@@ -1,11 +1,15 @@
 const express = require('express');
-require('dotenv').config();  
+require('dotenv').config();
 const app = express();
 const port = 3000;
 const OdooConnector = require('./src/util/odooConector.util.js');
-const externalApiRoutes = require('./src/routes/External.routes.js');
+const partnerRoutes = require('./src/routes/partner.routes.js');
+const bankRoutes = require('./src/routes/bank.routes.js');
+const authRoutes = require('./src/routes/auth.routes.js')
 const { errorHandler } = require('./src/middleware/errorHandler.middelware.js');
 const billRoutes = require('./src/routes/bill.routes.js');
+const dbConfig = require('./src/config/db.js');
+const config = require('./src/config/config.js');
 
 // Create the async function to start the application
 async function startServer() {
@@ -14,10 +18,17 @@ async function startServer() {
     try {
         app.use(express.json());
 
-        app.use('/api', externalApiRoutes);
+        app.use('/api', partnerRoutes);
         app.use('/api', billRoutes);
+        app.use('/api', bankRoutes);
+        app.use('/api', authRoutes);
 
-        app.use(errorHandler);
+        //app.use(errorHandler);
+
+
+        // Initialize the database connection
+        const db = await dbConfig.init(config.database);
+        console.log('Connected to MySQL database');
 
         // --- Start the server --- //
         app.listen(port, () => {

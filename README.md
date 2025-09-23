@@ -84,3 +84,13 @@ MIT
   - Ejemplo de integración de validaciones previas antes de crear facturas y clientes.
   - Corrección de campos y dominios en consultas a Odoo para evitar errores de tipo y de integridad referencial.
   - Documentación de buenas prácticas para manejo de status HTTP y separación de responsabilidades entre servicios y controladores.
+
+  # Personal
+  - Manejo de errores sin el envio del throw
+  - Valores por defecto de los parametros en una funcion
+
+- 2025-09-23
+  - Manejo de conexiones sin ORM,
+  
+  - Uso de pools de conexion
+  - Inserción de logs a la base de datos

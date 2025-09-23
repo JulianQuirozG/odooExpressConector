@@ -34,23 +34,24 @@ class ProductService {
         "description",
         "company_id",
       ];
+      console.log("Product fetched by IadadasdasdD:", user);
       const product = await connector.executeOdooQuery("object", "execute_kw", [
         user.db,
         user.uid,
         user.password,
         "product.template",
         "search_read",
-        [[["id", "=", Number(id)]]], // Dominio correcto
+        [[["id", "=", Number(id)]]], 
         { fields },
       ]);
-
+      
       if (product.success === false) {
         if (product.error === true) {
           return { statusCode: 500, message: product.message, data: {} };
         }
         return { statusCode: 400, message: product.message, data: {} };
       }
-
+      
       if(product.data.length === 0){
         return { statusCode: 404, message: "El producto no existe", data: {} };
       }
@@ -60,7 +61,7 @@ class ProductService {
       return {
         statusCode: 500,
         error: true,
-        message: "Error al obtener el producto",
+        message: "Error al obtener el producto" + error.message ,
         data: [],
       };
     }
@@ -87,16 +88,13 @@ class ProductService {
         }
         return { statusCode: 400, message: product.message, data: {} };
       }
-
       // Retornamos la lista de productos
-      const productDetails = await this.getProductById(product, user);
-
-      if (productDetails.error === true) {
-        return { statusCode: 500, message: productDetails.message, data: {} };
-      }
-      if (productDetails.statusCode === 404) {
+      const productDetails = await this.getProductById(product.data, user);
+      
+      if (productDetails.statusCode !== 200) {
         return { statusCode: productDetails.statusCode, message: productDetails.message, data: {} };
       }
+
       return {
         statusCode: 200,
         message: "Producto creado exitosamente",
@@ -117,8 +115,8 @@ class ProductService {
     try {
       // Validar que el cliente existe
       const product = await this.getProductById(id, user);
-      if(product.statusCode === 404){
-        return { statusCode: 404, message: "El producto no existe", data: {} };
+      if(product.statusCode !== 200){
+        return { statusCode: product.statusCode, message: "El producto no existe"+product.message, data: {} };
       }
       // Intentar realizar la actualización
       const result = await connector.executeOdooQuery("object", "execute_kw", [

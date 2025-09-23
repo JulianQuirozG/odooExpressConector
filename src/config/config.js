@@ -8,6 +8,16 @@ const config = {
     password: process.env.ODOO_PASSWORD || `53427c288d3419fff9daa815793977dc717db9aa`,
     secret: process.env.JWT_SECRET || 'OdooExpressSecretKey'
   },
+  database:{
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '123456789',
+    database: process.env.DB_NAME || 'ExpressOdoo',
+    port: process.env.DB_PORT || 3306,
+    dateStrings: true,
+    multipleStatements: true
+
+  }
 };
 
 module.exports = config;

@@ -18,15 +18,8 @@ class BankService {
         user
       );
 
-      if (existingBanks.success === false) {
-        if (existingBanks.error === true) {
-          return { statusCode: 500, message: existingBanks.message, data: {} };
-        }
-        return { statusCode: 400, message: existingBanks.message, data: {} };
-      }
-
       //console.log("existingBanks:", existingBanks);
-      if (existingBanks.length > 0) {
+      if (existingBanks.statusCode === 200 && existingBanks.data.length > 0) {
         return { statusCode: 400, message: "El banco ya existe", data: {} };
       }
 
@@ -48,7 +41,7 @@ class BankService {
       return {
         statusCode: 200,
         message: "Banco creado exitosamente",
-        data: { id: result },
+        data:  result.data,
       };
     } catch (error) {
       console.error("Error al crear el banco:", error);
@@ -82,7 +75,10 @@ class BankService {
         }
         return { statusCode: 400, message: banks.message, data: {} };
       }
-      return { statusCode: 200, message: "Banco encontrado", data: banks[0] };
+      if (banks.data.length === 0) {
+        return { statusCode: 404, message: "El banco no existe", data: {} };
+      }
+      return { statusCode: 200, message: "Banco encontrado", data: banks.data[0] };
     } catch (error) {
       console.error("Error al obtener el banco por ID:", error);
       return {
@@ -114,7 +110,10 @@ class BankService {
         }
         return { statusCode: 400, message: banks.message, data: {} };
       }
-      return { statusCode: 200, message: "Bancos encontrados", data: banks };
+      if (banks.data.length === 0) {
+        return { statusCode: 404, message: "No se encontraron bancos", data: [] };
+      }
+      return { statusCode: 200, message: "Bancos encontrados", data: banks.data };
     } catch (error) {
       console.error("Error al buscar bancos por nombre:", error);
       return {
@@ -145,7 +144,10 @@ class BankService {
         }
         return { statusCode: 400, message: banks.message, data: {} };
       }
-      return { statusCode: 200, message: "Bancos encontrados", data: banks };
+      if (banks.data.length === 0) {
+        return { statusCode: 404, message: "No se encontraron bancos", data: [] };
+      }
+      return { statusCode: 200, message: "Bancos encontrados", data: banks.data };
     } catch (error) {
       console.error("Error al buscar bancos por nombre (ilike):", error);
       return {

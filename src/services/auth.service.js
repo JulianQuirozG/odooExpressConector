@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/config.js');
 const { success } = require('zod');
 
-const loginService = {
+const authService = {
 
     async loginJWT(user) {
         const { username, password, db } = user;
@@ -32,4 +32,4 @@ const loginService = {
     }
 }
 
-module.exports = { loginService };
+module.exports = { authService };
