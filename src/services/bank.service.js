@@ -1,5 +1,6 @@
 const { ca } = require("zod/locales");
 const connector = require("../util/odooConector.util.js");
+const { LogsRepository } = require("../Repository/logs.repository.js");
 
 /**
  * Servicio para operaciones con bancos (res.bank) en Odoo.
@@ -35,25 +36,30 @@ const bankService = {
         return { statusCode: 400, message: "El banco ya existe", data: {} };
       }
 
-      const result = await connector.executeOdooQuery("object", "execute_kw", [
+      const args = [
         user.db,
         user.uid,
         user.password,
         "res.bank",
         "create",
         [bankData],
-      ]);
+      ];
+
+      const result = await connector.executeOdooQuery("object", "execute_kw", args);
+
+      //await LogsRepository.insertLog('object', 'execute_kw', args, result.data);
+
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
 
       return {
         statusCode: 200,
         message: "Banco creado exitosamente",
-        data:  result.data,
+        data: result.data,
       };
     } catch (error) {
       console.error("Error al crear el banco:", error);
@@ -78,7 +84,7 @@ const bankService = {
     try {
       const domain = [["id", "=", Number(bankId)]];
       const fields = ["id", "name", "bic", "active"];
-      const banks = await connector.executeOdooQuery("object", "execute_kw", [
+      const args = [
         user.db,
         user.uid,
         user.password.db,
@@ -88,12 +94,16 @@ const bankService = {
         "search_read",
         [domain],
         { fields },
-      ]);
+      ];
+      const banks = await connector.executeOdooQuery("object", "execute_kw", args);
+
+      //await LogsRepository.insertLog('object', 'execute_kw', args, banks.data);
+
       if (banks.success === false) {
         if (banks.error === true) {
-          return { statusCode: 500, message: banks.message, data: {} };
+          return { statusCode: 500, message: banks.message, data: banks.data };
         }
-        return { statusCode: 400, message: banks.message, data: {} };
+        return { statusCode: 400, message: banks.message, data: banks.data };
       }
       if (banks.data.length === 0) {
         return { statusCode: 404, message: "El banco no existe", data: {} };
@@ -134,9 +144,9 @@ const bankService = {
       ]);
       if (banks.success === false) {
         if (banks.error === true) {
-          return { statusCode: 500, message: banks.message, data: {} };
+          return { statusCode: 500, message: banks.message, data: banks.data };
         }
-        return { statusCode: 400, message: banks.message, data: {} };
+        return { statusCode: 400, message: banks.message, data: banks.data };
       }
       if (banks.data.length === 0) {
         return { statusCode: 404, message: "No se encontraron bancos", data: [] };
@@ -177,9 +187,9 @@ const bankService = {
       ]);
       if (banks.success === false) {
         if (banks.error === true) {
-          return { statusCode: 500, message: banks.message, data: {} };
+          return { statusCode: 500, message: banks.message, data: banks.data };
         }
-        return { statusCode: 400, message: banks.message, data: {} };
+        return { statusCode: 400, message: banks.message, data: banks.data };
       }
       if (banks.data.length === 0) {
         return { statusCode: 404, message: "No se encontraron bancos", data: [] };

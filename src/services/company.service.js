@@ -24,9 +24,9 @@ const companyService = {
             const companies = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password, 'res.company', 'search_read', [domain], { fields }]);
             if (companies.success === false) {
                 if (companies.error === true) {
-                    return { statusCode: 500, message: companies.message, data: {} };
+                    return { statusCode: 500, message: companies.message, data: companies.data };
                 }
-                return { statusCode: 400, message: companies.message, data: {} };
+                return { statusCode: 400, message: companies.message, data: companies.data };
             }
             if (companies.data.length === 0) {
                 return { statusCode: 404, message: "La compañía no existe", data: {} };
@@ -55,9 +55,9 @@ const companyService = {
             const companies = await connector.executeOdooQuery("object", "execute_kw", [user.db, user.uid, user.password, 'res.company', 'search_read', [domain], { fields }]);
             if (companies.success === false) {
                 if (companies.error === true) {
-                    return { statusCode: 500, message: companies.message, data: {} };
+                    return { statusCode: 500, message: companies.message, data: companies.data };
                 }
-                return { statusCode: 400, message: companies.message, data: {} };
+                return { statusCode: 400, message: companies.message, data: companies.data };
             }
             if (companies.data.length === 0) {
                 return { statusCode: 404, message: "La compañía no existe", data: {} };

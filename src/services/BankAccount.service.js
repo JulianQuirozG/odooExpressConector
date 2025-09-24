@@ -1,3 +1,4 @@
+const e = require("express");
 const connector = require("../util/odooConector.util.js");
 const {bankService} = require("./bank.service.js");
 
@@ -30,7 +31,7 @@ const bankAccountService = {
         );
 
         if (createdBank.statusCode !== 200) {
-          return { statusCode: createdBank.statusCode, message: createdBank.message, data: {} };
+          return { statusCode: createdBank.statusCode, message: createdBank.message, data: createdBank.data };
         }
       }
       bankAccountData.bank_id = Number(bankAccountData.bank_id);
@@ -45,9 +46,9 @@ const bankAccountService = {
       ]);
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
       return {
         statusCode: 200,
@@ -86,9 +87,9 @@ const bankAccountService = {
       ]);
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
 
       return {
@@ -145,9 +146,9 @@ const bankAccountService = {
       ]);
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
       if (result.data.length === 0) {
         return { statusCode: 404, message: "La cuenta bancaria no existe", data: [] };
@@ -192,10 +193,10 @@ const bankAccountService = {
             return {
               statusCode: 500,
               message: existingBanks.message,
-              data: [],
+              data: existingBanks.data,
             };
           }
-          return { statusCode: 400, message: existingBanks.message, data: [] };
+          return { statusCode: 400, message: existingBanks.message, data: existingBanks.data };
         }
 
         let bankGet;
@@ -206,9 +207,9 @@ const bankAccountService = {
           );
           if (bankGet.success === false) {
             if (bankGet.error === true) {
-              return { statusCode: 500, message: bankGet.message, data: [] };
+              return { statusCode: 500, message: bankGet.message, data: bankGet.data };
             }
-            return { statusCode: 400, message: bankGet.message, data: [] };
+            return { statusCode: 400, message: bankGet.message, data: bankGet.data };
           }
 
         } else {
@@ -222,13 +223,13 @@ const bankAccountService = {
 
         if (bank.success === false) {
           if (bank.error === true) {
-            return { statusCode: 500, message: bank.message, data: [] };
+            return { statusCode: 500, message: bank.message, data: bank.data };
           }
-          return { statusCode: 400, message: bank.message, data: [] };
+          return { statusCode: 400, message: bank.message, data: bank.data };
         }
 
         if (bank.statusCode === 404) {
-          return { statusCode: bank.statusCode, message: "No se pudo obtener o crear el banco", data: [] };
+          return { statusCode: bank.statusCode, message: "No se pudo obtener o crear el banco", data: bank.data };
         }
 
         const bankAccountData = pickFields(newData, BANK_ACCOUNT_FIELDS);
@@ -242,13 +243,13 @@ const bankAccountService = {
         );
 
         if (updatedAccount.statusCode !== 200) {
-          return { statusCode: updatedAccount.statusCode, message: `No se pudo crear la cuenta bancaria ${updatedAccount.message}`, data: [] };
+          return { statusCode: updatedAccount.statusCode, message: `No se pudo crear la cuenta bancaria ${updatedAccount.message}`, data: updatedAccount.data };
         }
 
         const partnerAfter = await this.getBankAccountByPartnerId(id, user);
 
-        if (updatedAccount.statusCode !== 200) {
-          return { statusCode: updatedAccount.statusCode, message: `No se pudo actualizar la cuenta bancaria ${updatedAccount.message}`, data: [] };
+        if (partnerAfter.statusCode !== 200) {
+          return { statusCode: partnerAfter.statusCode, message: `No se pudo obtener la cuenta bancaria: ${partnerAfter.message}`, data: partnerAfter.data };
         }
 
         return {
@@ -260,7 +261,7 @@ const bankAccountService = {
         const partner = await this.getOneClient(id, undefined, undefined, user);
 
         if(partner.statusCode !== 200){
-          return { statusCode: partner.statusCode, message: partner.message, data: [] };
+          return { statusCode: partner.statusCode, message: partner.message, data: partner.data };
         }
 
         const deleted = await this.deleteBankAccount(
@@ -269,12 +270,12 @@ const bankAccountService = {
         );
 
         if (deleted.statusCode !== 200) {
-          return { statusCode: deleted.statusCode, message: `No se pudo eliminar la cuenta bancaria: ${deleted.message}`, data: [] };
+          return { statusCode: deleted.statusCode, message: `No se pudo eliminar la cuenta bancaria: ${deleted.message}`, data: deleted.data };
         }
 
         const partnerAfter = await this.getBankAccountByPartnerId(id, user);
         if (partnerAfter.statusCode !== 200) {
-          return { statusCode: partnerAfter.statusCode, message: `No se pudo actualizar la cuenta bancaria: ${partnerAfter.message}`, data: [] };
+          return { statusCode: partnerAfter.statusCode, message: `No se pudo actualizar la cuenta bancaria: ${partnerAfter.message}`, data: partnerAfter.data };
         }
 
         return {

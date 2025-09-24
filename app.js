@@ -2,10 +2,10 @@ const express = require('express');
 require('dotenv').config();
 const app = express();
 const port = 3000;
-const OdooConnector = require('./src/util/odooConector.util.js');
 const partnerRoutes = require('./src/routes/partner.routes.js');
 const bankRoutes = require('./src/routes/bank.routes.js');
 const authRoutes = require('./src/routes/auth.routes.js')
+const attachmentRoutes = require('./src/routes/attachements.routes.js');
 const { errorHandler } = require('./src/middleware/errorHandler.middelware.js');
 const billRoutes = require('./src/routes/bill.routes.js');
 const dbConfig = require('./src/config/db.js');
@@ -22,6 +22,7 @@ async function startServer() {
         app.use('/api', billRoutes);
         app.use('/api', bankRoutes);
         app.use('/api', authRoutes);
+        app.use('/api', attachmentRoutes);
 
         //app.use(errorHandler);
 

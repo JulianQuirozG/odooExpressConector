@@ -2,6 +2,7 @@ const connector = require('../util/odooConector.util');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config.js');
 const { success } = require('zod');
+const { LogsRepository } = require('../Repository/logs.repository.js');
 
 /**
  * Servicio de autenticación para Odoo Express.
@@ -27,14 +28,20 @@ const authService = {
                 return {statusCode:400, message: 'Faltan credenciales', data: {}};
             }
             console.log("Intentando conectar a Odoo con:", { username, db });
-            const response = await connector.executeOdooQuery("common","login",[db, username, password]);
-            //console.log(response);
+
+            const args = [db, username, password];
+            const response = await connector.executeOdooQuery("common","login", args);
+
+            //await LogsRepository.insertLog('common','login', args, response.data);
+
             if (response.success === false) {
                 if(response.error === true){
-                    return {statusCode:500, message: response.message, data: {}};
+                    return {statusCode:500, message: response.message, data: response.data };
                 }
-                return {statusCode:400, message: response.message, data: {}};
+                return {statusCode:400, message: response.message, data: response.data };
             }
+
+            
 
             // Generar el token JWT
             const payload = { username, db, uid: response.data, password }

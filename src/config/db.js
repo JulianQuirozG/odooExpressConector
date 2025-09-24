@@ -65,21 +65,16 @@ const DbConfig = {
         }
     },
 
-    //Funcion para crear una transaccion
-    async trasnsaction() {
-        const connection = await pool.getConnection();
+    async getConnection() {
         try {
-            await connection.beginTransaction();
-            return connection;
+            const connection = await pool.getConnection();
+            return { success: true, message: 'Connection acquired', data: connection };
         } catch (error) {
-            connection.release();
-            throw error;
+            console.error("Error getting connection: ", error);
+            return { success: false, error: true, message: 'Error getting connection', data: null };
         }
-    },
+    }
 
-    //Cantidad de conexiones
-    //Manejo de transacciones
-    //
 };
 
 module.exports = DbConfig;

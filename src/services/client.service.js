@@ -35,13 +35,15 @@ const partnerService = {
       } else if (type === "both") {
         fields = [new Set([...CLIENT_FIELDS, ...PROVIDER_FIELDS])];
       }
+
+      console.log("Creating client with data:", pickFields(data, fields));
       const clientId = await this.createPartner(pickFields(data, fields), user);
 
       if (clientId.statusCode !== 200) {
         return {
           statusCode: clientId.statusCode,
           message: `No se pudo crear el cliente: ${clientId.message}`,
-          data: [],
+          data: clientId.data,
         };
       }
 
@@ -111,7 +113,7 @@ const partnerService = {
         return {
           statusCode: partner.statusCode,
           message: `No se pudo obtener el cliente creado: ${partner.message}`,
-          data: [],
+          data: partner.data,
         };
       }
       return {
@@ -152,7 +154,7 @@ const partnerService = {
         return {
           statusCode: client.statusCode,
           message: client.message,
-          data: [],
+          data: client.data,
         };
       }
 
@@ -165,7 +167,7 @@ const partnerService = {
           return {
             statusCode: company.statusCode,
             message: "La compañía especificada no existe" + company.message,
-            data: [],
+            data: company.data,
           };
         }
       }
@@ -180,7 +182,7 @@ const partnerService = {
         return {
           statusCode: updatedClient.statusCode,
           message: `No se pudo actualizar el cliente: ${updatedClient.message}`,
-          data: [],
+          data: updatedClient.data,
         };
       }
 
@@ -195,7 +197,7 @@ const partnerService = {
         return {
           statusCode: partner.statusCode,
           message: `No se pudo obtener el cliente actualizado: ${partner.message}`,
-          data: [],
+          data: partner.data,
         };
       }
 
@@ -246,7 +248,6 @@ const partnerService = {
         "city",
         "country_id",
         "phone",
-        "mobile",
         "email",
         "website",
         "lang",
@@ -262,15 +263,15 @@ const partnerService = {
         "res.partner",
         "search_read",
         [domain],
-        { fields },
+        
       ]);
       console.log(clients);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
       if (clients.success === false) {
         if (clients.error === true) {
-          return { statusCode: 500, message: clients.message, data: {} };
+          return { statusCode: 500, message: clients.message, data: clients.data };
         }
-        return { statusCode: 400, message: clients.message, data: [] };
+        return { statusCode: 400, message: clients.message, data: clients.data };
       }
 
       // Retornamos la lista de clientes
@@ -324,7 +325,6 @@ const partnerService = {
         "city",
         "country_id",
         "phone",
-        "mobile",
         "email",
         "website",
         "lang",
@@ -338,7 +338,6 @@ const partnerService = {
         "customer_rank",
         "parent_id",
       ]; // Campos que deseas traer
-      console.log("Dominio usado:", domain);
 
       // Realizamos la consulta a Odoo
       const clients = await connector.executeOdooQuery("object", "execute_kw", [
@@ -352,14 +351,14 @@ const partnerService = {
       ]);
       console.log(clients);
       // Si no se encuentran clientes, devolvemos un error
-      if (clients.error === true) {
+      if (clients.success === false) {
         if (clients.error === true) {
-          return { statusCode: 500, message: clients.message, data: [] };
+          return { statusCode: 500, message: clients.message, data: clients.data };
         }
-        return { statusCode: 400, message: clients.message, data: [] };
+        return { statusCode: 400, message: clients.message, data: clients.data };
       }
       if (clients.data.length === 0) {
-        return { statusCode: 404, message: "El cliente no existe", data: [] };
+        return { statusCode: 404, message: "El cliente no existe", data: clients.data };
       }
 
       // Retornamos el cliente encontrado
@@ -401,7 +400,7 @@ const partnerService = {
           return {
             statusCode: 400,
             message: "La empresa no existe",
-            data: [],
+            data: companyExists.data,
           };
         }
       }
@@ -419,9 +418,9 @@ const partnerService = {
       console.log(clients);
       if (clients.success === false) {
         if (clients.error === true) {
-          return { statusCode: 500, message: clients.message, data: {} };
+          return { statusCode: 500, message: clients.message, data: clients.data };
         }
-        return { statusCode: 400, message: clients.message, data: {} };
+        return { statusCode: 400, message: clients.message, data: clients.data };
       }
 
       // Retornamos la lista de clientes
@@ -463,7 +462,7 @@ const partnerService = {
         return {
           statusCode: client.statusCode,
           message: client.message,
-          data: [],
+          data: client.data,
         };
       }
 
@@ -480,9 +479,9 @@ const partnerService = {
       ]);
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
       const clientGet = await this.getOneClient(id, undefined, undefined, user);
       return {
@@ -524,7 +523,7 @@ const partnerService = {
           statusCode: ids.statusCode,
           message:
             "Cliente no encontrado o no es un cliente válido" + ids.message,
-          data: [],
+          data: ids.data,
         };
       }
       console.log("ID del cliente a eliminar:", ids.data);
@@ -540,9 +539,9 @@ const partnerService = {
 
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
 
       return {
@@ -585,7 +584,7 @@ const partnerService = {
           return {
             statusCode: exists.statusCode,
             message: "La compañía especificada no existe" + exists.message,
-            data: [],
+            data: exists.data,
           };
         }
       }
@@ -600,7 +599,7 @@ const partnerService = {
         return {
           statusCode: updateClients.statusCode,
           message: `No se pudo actualizar el cliente: ${updateClients.message}`,
-          data: [],
+          data: updateClients.data,
         };
       }
       return {
@@ -645,7 +644,6 @@ const partnerService = {
         "city",
         "country_id",
         "phone",
-        "mobile",
         "email",
         "website",
         "lang",
@@ -668,7 +666,7 @@ const partnerService = {
         return {
           statusCode: clients.statusCode,
           message: clients.message,
-          data: [],
+          data: clients.data,
         };
       }
 
@@ -718,7 +716,6 @@ const partnerService = {
         "city",
         "country_id",
         "phone",
-        "mobile",
         "email",
         "website",
         "lang",
@@ -742,7 +739,7 @@ const partnerService = {
         return {
           statusCode: clients.statusCode,
           message: clients.message,
-          data: [],
+          data: clients.data,
         };
       }
 
@@ -801,7 +798,6 @@ const partnerService = {
         "city",
         "country_id",
         "phone",
-        "mobile",
         "email",
         "website",
         "lang",
@@ -826,7 +822,7 @@ const partnerService = {
         return {
           statusCode: partners.statusCode,
           message: partners.message,
-          data: [],
+          data: partners.data,
         };
       }
       return {

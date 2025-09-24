@@ -39,15 +39,15 @@ const billService = {
 
       if (bill.success === false) {
         if (bill.error === true) {
-          return { statusCode: 500, message: bill.message, data: {} };
+          return { statusCode: 500, message: bill.message, data: bill.data };
         }
-        return { statusCode: 400, message: bill.message, data: {} };
+        return { statusCode: 400, message: bill.message, data: bill.data };
       }
 
       // Retornamos la lista de productos
       const response = await this.getBillById(bill.data, undefined, user);
       if (response.statusCode !== 200) {
-        return { statusCode: response.statusCode, message: `No se pudo obtener la factura: ${response.message}`, data: [] };
+        return { statusCode: response.statusCode, message: `No se pudo obtener la factura: ${response.message}`, data: response.data };
       }
 
       return {
@@ -108,13 +108,13 @@ const billService = {
       ]);
       if (bills.success === false) {
         if (bills.error === true) {
-          return { statusCode: 500, message: bills.message, data: {} };
+          return { statusCode: 500, message: bills.message, data: bills.data };
         }
-        return { statusCode: 400, message: bills.message, data: {} };
+        return { statusCode: 400, message: bills.message, data: bills.data };
       }
       console.log("Cambios" + JSON.stringify(bills));
       if (bills.data.length === 0) {
-        return { statusCode: 404, message: `La factura` + (type ? ` en estado ${type} ` : ' ') + 'no existe', data: [] };
+        return { statusCode: 404, message: `La factura` + (type ? ` en estado ${type} ` : ' ') + 'no existe', data: bills.data };
       }
 
       return {
@@ -149,7 +149,7 @@ const billService = {
       const bill = await this.getBillById(billId, "draft", user);
 
       if (bill.statusCode !== 404) {
-        return { statusCode: bill.statusCode, message: bill.message, data: [] };
+        return { statusCode: bill.statusCode, message: bill.message, data: bill.data };
       }
       // Realizamos la consulta a Odoo
       const result = await connector.executeOdooQuery("object", "execute_kw", [
@@ -164,9 +164,9 @@ const billService = {
 
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
       return {
         statusCode: 200,
@@ -200,7 +200,7 @@ const billService = {
       const bill = await this.getBillById(billId, undefined, user);
 
       if (bill.statusCode !== 200) {
-        return { statusCode: bill.statusCode, message: bill.message, data: [] };
+        return { statusCode: bill.statusCode, message: bill.message, data: bill.data };
       }
 
       // Agregamos la línea de producto a la factura
@@ -220,9 +220,9 @@ const billService = {
       //console.log("Updated Bill:", updatedBill);
       if (updatedBill.success === false) {
         if (updatedBill.error === true) {
-          return { statusCode: 500, message: updatedBill.message, data: {} };
+          return { statusCode: 500, message: updatedBill.message, data: updatedBill.data };
         }
-        return { statusCode: 400, message: updatedBill.message, data: {} };
+        return { statusCode: 400, message: updatedBill.message, data: updatedBill.data };
       }
 
       return {
@@ -271,9 +271,9 @@ const billService = {
       console.log("Updated Bill:", updatedBill);
       if (updatedBill.success === false) {
         if (updatedBill.error === true) {
-          return { statusCode: 500, message: updatedBill.message, data: {} };
+          return { statusCode: 500, message: updatedBill.message, data: updatedBill.data };
         }
-        return { statusCode: 400, message: updatedBill.message, data: {} };
+        return { statusCode: 400, message: updatedBill.message, data: updatedBill.data };
       }
 
       return {
@@ -307,9 +307,9 @@ const billService = {
       const billExist = await this.getBillById(billId, "draft", user);
       if (billExist.statusCode !== 200) {
         if (billExist.statusCode === 404) {
-          return { statusCode: billExist.statusCode, message: `La factura no existe o no está en estado borrador`, data: [] };
+          return { statusCode: billExist.statusCode, message: `La factura no existe o no está en estado borrador`, data: billExist.data };
         }
-        return { statusCode: billExist.statusCode, message: billExist.message, data: [] };
+        return { statusCode: billExist.statusCode, message: billExist.message, data: billExist.data };
       }
 
       const result = await connector.executeOdooQuery("object", "execute_kw", [
@@ -323,9 +323,9 @@ const billService = {
       ]);
       if (result.success === false) {
         if (result.error === true) {
-          return { statusCode: 500, message: result.message, data: {} };
+          return { statusCode: 500, message: result.message, data: result.data };
         }
-        return { statusCode: 400, message: result.message, data: {} };
+        return { statusCode: 400, message: result.message, data: result.data };
       }
       console.log("Confirming bill ID:", result);
       const bill = await connector.executeOdooQuery("object", "execute_kw", [
@@ -340,9 +340,9 @@ const billService = {
 
       if (bill.success === false) {
         if (bill.error === true) {
-          return { statusCode: 500, message: bill.message, data: {} };
+          return { statusCode: 500, message: bill.message, data: bill.data };
         }
-        return { statusCode: 400, message: bill.message, data: {} };
+        return { statusCode: 400, message: bill.message, data: bill.data };
       }
 
       console.log("Bill after confirm:", bill.data[0]);
@@ -354,7 +354,7 @@ const billService = {
           user
         );
         if (confirmedBillDetails.statusCode !== 200) {
-          return { statusCode: confirmedBillDetails.statusCode, message: confirmedBillDetails.message, data: {} };
+          return { statusCode: confirmedBillDetails.statusCode, message: confirmedBillDetails.message, data: confirmedBillDetails.data };
         }
         return { statusCode: 200, message: "Factura confirmada exitosamente", data: confirmedBillDetails.data };
       } else {
@@ -386,7 +386,7 @@ const billService = {
     try {
       const bill = await this.getBillById(id, "draft", user);
       if (bill.statusCode !== 200) {
-        return { statusCode: bill.statusCode, message: bill.message, data: [] };
+        return { statusCode: bill.statusCode, message: bill.message, data: bill.data };
       }
       const updatedBill = await this.updateBill(
         id,
@@ -395,7 +395,7 @@ const billService = {
       );
 
       if (updatedBill.statusCode !== 200) {
-        return { statusCode: updatedBill.statusCode, message: updatedBill.message, data: [] };
+        return { statusCode: updatedBill.statusCode, message: updatedBill.message, data: updatedBill.data };
       }
 
       let productsInvalid = [];
@@ -433,7 +433,7 @@ const billService = {
       const billAfter = await this.getBillById(id, undefined, user);
 
       if (billAfter.statusCode !== 200) {
-        return { statusCode: billAfter.statusCode, message: billAfter.message, data: [] };
+        return { statusCode: billAfter.statusCode, message: billAfter.message, data: billAfter.data };
       }
 
       return { statusCode: 200, message: "Factura actualizada exitosamente", data: { billAfter, productsInvalid } };
@@ -464,7 +464,7 @@ const billService = {
       let result;
       const billDraft = await this.getBillById(billId, "draft", user);
       if (billDraft.statusCode !== 200) {
-        return { statusCode: billDraft.statusCode, message: 'La factura no existe o no está en estado borrador', data: [] };
+        return { statusCode: billDraft.statusCode, message: 'La factura no existe o no está en estado borrador', data: billDraft.data };
       }
       if (action === "add") {
         //console.log("Adding product to bill:", user);
@@ -473,19 +473,19 @@ const billService = {
           user
         );
         //console.log("Product fetched:", product);
-        if (product.statusCode !== 200) return { statusCode: product.statusCode, message: `El producto con ID ${rowData.product_id} no existe`, data: [] };
+        if (product.statusCode !== 200) return { statusCode: product.statusCode, message: `El producto con ID ${rowData.product_id} no existe`, data: product.data };
         result = await this.addProductToBill(billId, rowData, user);
-        if (result.statusCode !== 200) return { statusCode: result.statusCode, message: `No se pudo agregar el producto a la factura: ${result.message}`, data: [] };
+        if (result.statusCode !== 200) return { statusCode: result.statusCode, message: `No se pudo agregar el producto a la factura: ${result.message}`, data: result.data };
       } else if (action === "delete") {
         result = await this.deleteProductFromBill(
           billId,
           rowData.id,
           user
         );
-        if (result.statusCode !== 200) return { statusCode: result.statusCode, message: `No se pudo eliminar el producto de la factura: ${result.message}`, data: [] };
+        if (result.statusCode !== 200) return { statusCode: result.statusCode, message: `No se pudo eliminar el producto de la factura: ${result.message}`, data: result.data };
       }
       const bill = await this.getBillById(billId, undefined, user);
-      if (bill.statusCode !== 200) return { statusCode: bill.statusCode, message: bill.message, data: [] };
+      if (bill.statusCode !== 200) return { statusCode: bill.statusCode, message: bill.message, data: bill.data };
       return { statusCode: 200, message: "Factura obtenida exitosamente", data: bill.data };
     } catch (error) {
       console.error("Error al editar la línea de la factura:", error);
@@ -518,7 +518,7 @@ const billService = {
       );
 
       if (client.statusCode !== 200) {
-        return { statusCode: client.statusCode, message: client.message, data: {} };
+        return { statusCode: client.statusCode, message: client.message, data: client.data };
       }
       const billId = await this.createBill(
         pickFields(data, BILL_FIELDS),
@@ -526,7 +526,7 @@ const billService = {
       );
       console.log("Bill created with ID:", billId);
       if (billId.statusCode !== 200) {
-        return { statusCode: billId.statusCode, message: billId.message, data: {} };
+        return { statusCode: billId.statusCode, message: billId.message, data: billId.data };
       }
 
       let productsInvalid = [];
@@ -558,7 +558,7 @@ const billService = {
       );
 
       if (bill.statusCode !== 200) {
-        return { statusCode: bill.statusCode, message: bill.message, data: {} };
+        return { statusCode: bill.statusCode, message: bill.message, data: bill.data };
       }
       if (productsInvalid.length > 0) {
         message += `, pero hay algunos productos que no existian: ${productsInvalid
