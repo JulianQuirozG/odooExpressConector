@@ -1,13 +1,4 @@
-const OdooConnector = require('../util/odooConector.util');
-const ClientService = require('../services/client.service');
-const BankService = require('../services/bank.service');
-const BankAccountService = require('../services/BankAccount.service');
-const ProductService = require('../services/product.service');
-
-const clientService = new ClientService(OdooConnector);
-const bankService = new BankService(OdooConnector);
-const bankAccountService = new BankAccountService(OdooConnector);
-const productService = new ProductService(OdooConnector);
+const {productService} = require('../services/product.service');
 // Instancia del servicio externo
 
 const ProductController = {

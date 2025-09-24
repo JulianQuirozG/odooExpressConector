@@ -1,17 +1,4 @@
-const connector = require('../util/odooConector.util');
-const BankAccountService = require('../services/BankAccount.service');
-const BankService = require('../services/bank.service');
-const ClientService = require('../services/client.service');
-const ProductService = require('../services/product.service');
-const BillService = require('../services/bill.service');
-const CompanyService = require('../services/company.service');
-const clientService = new ClientService();
-const productService = new ProductService();
-const bankService = new BankService();
-const bankAccountService = new BankAccountService();
-const billService = new BillService();
-const companyService = new CompanyService();
-
+const {billService} = require('../services/bill.service');
 
 const billController = {
     createBill: async (req, res) => {

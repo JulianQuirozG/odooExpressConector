@@ -1,12 +1,4 @@
-const OdooConnector = require('../util/odooConector.util');
-const BankAccountService = require('../services/BankAccount.service');
-const BankService = require('../services/bank.service');
-const ClientService = require('../services/client.service');
-const ProductService = require('../services/product.service');
-const BillService = require('../services/bill.service');
-const CompanyService = require('../services/company.service');
-const clientService = new ClientService();
-const companyService = new CompanyService();
+const {partnerService} = require('../services/client.service');
 // Instancia del servicio externo
 
 // Crear cliente con cuentas bancarias
@@ -14,7 +6,7 @@ const partnerController = {
 
     createClientWithBankAccounts: async (req, res) => {
         try {
-            const result = await clientService.createClientWithBankAccount(req.body, 'client', req.user);
+            const result = await partnerService.createClientWithBankAccount(req.body, 'client', req.user);
             res.status(result.statusCode).json(result);
         } catch (error) {
             console.error('Error en externalApi:', error);
@@ -24,7 +16,7 @@ const partnerController = {
 
     createProvider: async (req, res) => {
         try {
-            const result = await clientService.createClientWithBankAccount(req.body, 'provider', req.user);
+            const result = await partnerService.createClientWithBankAccount(req.body, 'provider', req.user);
             res.status(result.statusCode).json(result);
         } catch (error) {
             console.error('Error al crear proveedor:', error);
@@ -34,7 +26,7 @@ const partnerController = {
 
     getClients: async (req, res) => {
         try {
-            const clients = await clientService.getClients(req.query.company_id, "client", req.user);
+            const clients = await partnerService.getClients(req.query.company_id, "client", req.user);
             res.status(clients.statusCode).json(clients);
         } catch (error) {
             console.error('Error al obtener clientes:', error.message);
@@ -44,7 +36,7 @@ const partnerController = {
 
     getProviders: async (req, res) => {
         try {
-            const partner = await clientService.getClients(req.query.company_id, "provider", req.user);
+            const partner = await partnerService.getClients(req.query.company_id, "provider", req.user);
             res.status(partner.statusCode).json(partner);
         } catch (error) {
             console.error('Error al obtener proveedores:', error.message);
@@ -54,7 +46,7 @@ const partnerController = {
 
     getOneClient: async (req, res) => {
         try {
-            const client = await clientService.getOneClient(req.params.id, req.query.company_id, undefined, req.user);
+            const client = await partnerService.getOneClient(req.params.id, req.query.company_id, undefined, req.user);
             res.status(client.statusCode).json(client);
         } catch (error) {
             res.status(500).json({ error: 'Error interno del servidor', details: error.message });
@@ -63,7 +55,7 @@ const partnerController = {
 
     createClient: async (req, res) => {
         try {
-            const client = await clientService.createPartner(req.body, req.user);
+            const client = await partnerService.createPartner(req.body, req.user);
             res.status(client.statusCode).json(client);
         } catch (error) {
             console.error('Error al crear el cliente:', error.message);
@@ -74,8 +66,8 @@ const partnerController = {
 
     updateClient: async (req, res) => {
         try {
-            const updatedClient = await clientService.updateClientWithCompanyValidation(
-                req.params.id, req.query.company_id, req.body, companyService, req.user
+            const updatedClient = await partnerService.updateClientWithCompanyValidation(
+                req.params.id, req.query.company_id, req.body, req.user
             );
             res.status(updatedClient.statusCode).json(updatedClient);
         } catch (error) {
@@ -86,7 +78,7 @@ const partnerController = {
 
     deleteClient: async (req, res) => {
         try {
-            const clients = await clientService.deleteClient(req.params.id, req.query.company_id, req.user);
+            const clients = await partnerService.deleteClient(req.params.id, req.query.company_id, req.user);
             res.status(clients.statusCode).json(clients);
         } catch (error) {
             console.error('Error al eliminar el cliente:', error.message);

@@ -27,7 +27,7 @@ async function startServer() {
 
 
         // Initialize the database connection
-        const db = await dbConfig.init(config.database);
+        await dbConfig.init(config.database);
         console.log('Connected to MySQL database');
 
         // --- Start the server --- //

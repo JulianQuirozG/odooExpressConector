@@ -50,6 +50,7 @@ const OdooConnector = {
                     service, method, JSON.stringify(args), data.result ? JSON.stringify(data.result) : data.error ? JSON.stringify(data.error) : 'No response'
                 ])
             console.log('Log insert result:', logResult);
+            
             if (data && data.error) {
                 const Msg =
                     data.error?.data?.message ||

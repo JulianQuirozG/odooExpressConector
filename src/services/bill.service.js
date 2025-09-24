@@ -5,7 +5,7 @@ const z = require("zod");
 const { BILL_FIELDS, INVOICE_LINE_FIELDS } = require("./fields/entityFields.js");
 const { pickFields } = require("../util/object.util.js");
 const {productService} = require("./product.service.js");
-const {clientService} = require("./client.service.js");
+const {partnerService} = require("./client.service.js");
 
 
 const billService = {
@@ -418,7 +418,7 @@ const billService = {
 
   async createBillWithProducts(data, user) {
     try {
-      const client = await clientService.getOneClient(
+      const client = await partnerService.getOneClient(
         data.partner_id,
         undefined,
         undefined,
