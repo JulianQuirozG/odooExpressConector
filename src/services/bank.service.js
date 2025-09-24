@@ -1,8 +1,20 @@
 const { ca } = require("zod/locales");
 const connector = require("../util/odooConector.util.js");
 
+/**
+ * Servicio para operaciones con bancos (res.bank) en Odoo.
+ * @module bankService
+ */
 const bankService = {
-  // Crear un banco (res.bank)
+  /**
+   * Crea un nuevo banco en Odoo.
+   * @async
+   * @function createBank
+   * @memberof module:bankService
+   * @param {Object} bankData - Datos del banco (name, bic, etc).
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createBank(bankData, user) {
     try {
       if (!bankData) {
@@ -53,7 +65,15 @@ const bankService = {
     }
   },
 
-  // Buscar banco por ID
+  /**
+   * Busca un banco por su ID.
+   * @async
+   * @function getBankById
+   * @memberof module:bankService
+   * @param {number} bankId - ID del banco.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getBankById(bankId, user) {
     try {
       const domain = [["id", "=", Number(bankId)]];
@@ -90,7 +110,15 @@ const bankService = {
     }
   },
 
-  // Buscar bancos por nombre (parcial o exacto)
+  /**
+   * Busca bancos por nombre exacto.
+   * @async
+   * @function searchBanksByName
+   * @memberof module:bankService
+   * @param {string} name - Nombre del banco.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async searchBanksByName(name, user) {
     try {
       const domain = [["name", "=", name]];
@@ -125,6 +153,15 @@ const bankService = {
     }
   },
 
+  /**
+   * Busca bancos por nombre usando coincidencia parcial (ilike).
+   * @async
+   * @function searchBanksByNameIlike
+   * @memberof module:bankService
+   * @param {string} name - Nombre (o parte) del banco.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async searchBanksByNameIlike(name, user) {
     try {
       const domain = [["name", "ilike", name]];

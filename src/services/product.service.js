@@ -9,8 +9,15 @@ const { PRODUCT_FIELDS } = require("./fields/entityFields.js");
 
 
 const productService = {
-
-  // Obtener un producto por ID
+  /**
+   * Obtiene un producto por su ID.
+   * @async
+   * @function getProductById
+   * @memberof module:productService
+   * @param {number} id - ID del producto.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getProductById(id, user) {
     // Verificamos la sesión
     try {
@@ -58,6 +65,15 @@ const productService = {
     }
   },
 
+  /**
+   * Crea un nuevo producto en Odoo.
+   * @async
+   * @function createProduct
+   * @memberof module:productService
+   * @param {Object} newProduct - Datos del producto.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createProduct(newProduct, user) {
     try {
       //verificamos la session
@@ -102,6 +118,17 @@ const productService = {
   },
 
   //Falta implementar
+  /**
+   * Actualiza un producto existente.
+   * @async
+   * @function updateProducts
+   * @memberof module:productService
+   * @param {number} id - ID del producto.
+   * @param {Object} novoProducto - Datos a actualizar.
+   * @param {number} companyId - ID de la compañía.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async updateProducts(id, novoProducto, companyId, user) {
     try {
       // Validar que el cliente existe

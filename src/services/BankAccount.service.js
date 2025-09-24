@@ -1,8 +1,21 @@
 const connector = require("../util/odooConector.util.js");
 const {bankService} = require("./bank.service.js");
 
+/**
+ * Servicio para operaciones con cuentas bancarias (res.partner.bank) en Odoo.
+ * @module bankAccountService
+ */
 const bankAccountService = {
 
+  /**
+   * Crea una nueva cuenta bancaria para un partner en Odoo.
+   * @async
+   * @function createBankAccount
+   * @memberof module:bankAccountService
+   * @param {Object} bankAccountData - Datos de la cuenta bancaria.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createBankAccount(bankAccountData, user) {
     try {
       const bank = await bankService.getBankById(
@@ -52,6 +65,15 @@ const bankAccountService = {
     }
   },
 
+  /**
+   * Elimina (desactiva) una cuenta bancaria por su ID.
+   * @async
+   * @function deleteBankAccount
+   * @memberof module:bankAccountService
+   * @param {number} bankAccountId - ID de la cuenta bancaria.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async deleteBankAccount(bankAccountId, user) {
     try {
       const result = await connector.executeOdooQuery("object", "execute_kw", [
@@ -85,6 +107,16 @@ const bankAccountService = {
     }
   },
 
+  /**
+   * Obtiene cuentas bancarias de un partner (y opcionalmente por número de cuenta).
+   * @async
+   * @function getBankAccountByPartnerId
+   * @memberof module:bankAccountService
+   * @param {number} partnerId - ID del partner.
+   * @param {string} [acc_number] - Número de cuenta (opcional).
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getBankAccountByPartnerId(partnerId, acc_number, user) {
     try {
       const domain = [["partner_id", "=", Number(partnerId)]];
@@ -137,6 +169,17 @@ const bankAccountService = {
     }
   },
 
+  /**
+   * Edita (agrega o elimina) una cuenta bancaria de un partner.
+   * @async
+   * @function editBankAccount
+   * @memberof module:bankAccountService
+   * @param {number} id - ID del partner.
+   * @param {Object} newData - Datos de la cuenta bancaria.
+   * @param {string} type - Tipo de operación: 'add' o 'delete'.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async editBankAccount(id, newData, type, user) {
     try {
       if (type == "add") {

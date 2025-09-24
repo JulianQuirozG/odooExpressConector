@@ -14,8 +14,7 @@ const config = {
     password: process.env.DB_PASSWORD || '123456789',
     database: process.env.DB_NAME || 'ExpressOdoo',
     port: process.env.DB_PORT || 3306,
-    dateStrings: true,
-    multipleStatements: true
+    connectionLimit: 10
 
   }
 };

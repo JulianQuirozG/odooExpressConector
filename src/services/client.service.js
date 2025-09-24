@@ -15,6 +15,17 @@ const {
 const { pickFields } = require("../util/object.util.js");
 
 const partnerService = {
+  /**
+   * Crea un cliente junto con sus cuentas bancarias asociadas.
+   * @async
+   * @function createClientWithBankAccount
+   * @memberof module:partnerService
+   * @param {Object} data - Datos del cliente y cuentas bancarias.
+   * @param {string} type - Tipo de cliente ('client', 'provider', 'both').
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
+  
   async createClientWithBankAccount(data, type, user) {
     try {
       // 1  Crear un cliente o proveedor
@@ -124,6 +135,16 @@ const partnerService = {
     }
   },
 
+  /**
+   * Actualiza los datos de un cliente existente.
+   * @async
+   * @function updatePartner
+   * @memberof module:partnerService
+   * @param {number} id - ID del cliente.
+   * @param {Object} newData - Datos a actualizar.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async updatePartner(id, newData, user) {
     try {
       const client = await this.getOneClient(id, undefined, undefined, user);
@@ -184,10 +205,25 @@ const partnerService = {
         data: partner.data,
       };
     } catch (error) {
-      throw new Error(`Error al actualizar cliente: ${error.message}`);
+      console.error("Error al actualizar el cliente:", error);
+      return {
+        statusCode: 500,
+        message: "Error al actualizar el cliente",
+        data: [],
+      };
     }
   },
 
+  /**
+   * Obtiene todos los clientes según la compañía y tipo.
+   * @async
+   * @function getClients
+   * @memberof module:partnerService
+   * @param {number} company_id - ID de la compañía.
+   * @param {string} type - Tipo de cliente ('client', 'provider').
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getClients(company_id, type, user) {
     try {
       // Iniciar sesión en Odoo
@@ -255,6 +291,17 @@ const partnerService = {
     }
   },
 
+  /**
+   * Obtiene un cliente por su ID, compañía y tipo.
+   * @async
+   * @function getOneClient
+   * @memberof module:partnerService
+   * @param {number} id - ID del cliente.
+   * @param {number} [company_id] - ID de la compañía (opcional).
+   * @param {string} [type] - Tipo de cliente (opcional).
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getOneClient(id, company_id, type, user) {
     // Iniciar sesión en Odoo
     try {
@@ -333,6 +380,15 @@ const partnerService = {
     }
   },
 
+  /**
+   * Crea un partner (cliente/proveedor) en Odoo.
+   * @async
+   * @function createPartner
+   * @memberof module:partnerService
+   * @param {Object} novoCliente - Datos del partner.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createPartner(novoCliente, user) {
     try {
       if (novoCliente.company_id) {
@@ -385,6 +441,17 @@ const partnerService = {
     }
   },
 
+  /**
+   * Actualiza un partner existente.
+   * @async
+   * @function updateClients
+   * @memberof module:partnerService
+   * @param {number} id - ID del partner.
+   * @param {Object} novoCliente - Datos a actualizar.
+   * @param {number} companyId - ID de la compañía.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async updateClients(id, novoCliente, companyId, user) {
     try {
       // Verificamos la sesión
@@ -433,6 +500,16 @@ const partnerService = {
     }
   },
 
+  /**
+   * Elimina (archiva) un cliente por su ID y compañía.
+   * @async
+   * @function deleteClient
+   * @memberof module:partnerService
+   * @param {number} id - ID del cliente.
+   * @param {number} company_id - ID de la compañía.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async deleteClient(id, company_id, user) {
     // Verificamos la sesión
     try {
@@ -484,10 +561,15 @@ const partnerService = {
   },
 
   /**
-   * Crea un cliente validando primero si la compañía existe
-   * @param {string} id - ID del cliente a actualizar
-   * @param {Object} novoCliente - Datos del cliente
-   * @param {CompanyService} companyService - Servicio para validar compañías
+   * Actualiza un cliente validando primero si la compañía existe.
+   * @async
+   * @function updateClientWithCompanyValidation
+   * @memberof module:partnerService
+   * @param {number} id - ID del cliente.
+   * @param {number} companyIdSearch - ID de la compañía a buscar.
+   * @param {Object} novoCliente - Datos del cliente.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
    */
   async updateClientWithCompanyValidation(
     id,
@@ -536,6 +618,15 @@ const partnerService = {
     }
   },
 
+  /**
+   * Obtiene todos los proveedores según la compañía.
+   * @async
+   * @function getProviders
+   * @memberof module:partnerService
+   * @param {number} company_id - ID de la compañía.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getProviders(company_id, user) {
     try {
       // Iniciar sesión en Odoo
@@ -598,6 +689,16 @@ const partnerService = {
     }
   },
 
+  /**
+   * Obtiene un proveedor por su ID y compañía.
+   * @async
+   * @function getOneProvider
+   * @memberof module:partnerService
+   * @param {number} id - ID del proveedor.
+   * @param {number} company_id - ID de la compañía.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getOneProvider(id, company_id, user) {
     try {
       // Parámetros para la consulta de clientes (modelo 'res.partner' y dominio para filtrar clientes)
@@ -663,6 +764,16 @@ const partnerService = {
     }
   },
 
+  /**
+   * Obtiene partners (clientes/proveedores) según la compañía y tipo.
+   * @async
+   * @function getPartners
+   * @memberof module:partnerService
+   * @param {number} company_id - ID de la compañía.
+   * @param {string} type - Tipo de partner ('customer', 'supplier', 'both').
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getPartners(company_id, type, user) {
     try {
       let domain = [];

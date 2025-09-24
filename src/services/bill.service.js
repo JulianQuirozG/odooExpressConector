@@ -8,8 +8,21 @@ const {productService} = require("./product.service.js");
 const {partnerService} = require("./client.service.js");
 
 
+/**
+ * Servicio para operaciones con facturas (account.move) en Odoo.
+ * @module billService
+ */
 const billService = {
 
+  /**
+   * Crea una nueva factura en Odoo.
+   * @async
+   * @function createBill
+   * @memberof module:billService
+   * @param {Object} newBill - Datos de la factura.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createBill(newBill, user) {
     try {
       console.log(newBill);
@@ -54,6 +67,16 @@ const billService = {
     //verificamos la session
   },
 
+  /**
+   * Obtiene una factura por su ID y estado.
+   * @async
+   * @function getBillById
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {string} [type] - Estado de la factura ('draft', 'posted', opcional).
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async getBillById(billId, type, user) {
     //verificamos la session
     try {
@@ -110,6 +133,16 @@ const billService = {
     }
   },
 
+  /**
+   * Actualiza una factura en estado borrador.
+   * @async
+   * @function updateBill
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {Object} updatedBill - Datos a actualizar.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async updateBill(billId, updatedBill, user) {
     //verificamos la session
     try {
@@ -151,6 +184,16 @@ const billService = {
     }
   },
 
+  /**
+   * Agrega una línea de producto a una factura.
+   * @async
+   * @function addProductToBill
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {Object} productLine - Datos de la línea de producto.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async addProductToBill(billId, productLine, user) {
     //verificamos la session
     try {
@@ -198,6 +241,16 @@ const billService = {
     }
   },
 
+  /**
+   * Elimina una línea de producto de una factura.
+   * @async
+   * @function deleteProductFromBill
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {number} productLineId - ID de la línea de producto.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async deleteProductFromBill(billId, productLineId, user) {
     //verificamos la session
     try {
@@ -239,6 +292,15 @@ const billService = {
     }
   },
 
+  /**
+   * Confirma (valida) una factura en Odoo.
+   * @async
+   * @function confirmBill
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async confirmBill(billId, user) {
     //verificamos la session
     try {
@@ -310,6 +372,16 @@ const billService = {
     }
   },
 
+  /**
+   * Actualiza completamente una factura, incluyendo líneas de productos.
+   * @async
+   * @function updateBillFull
+   * @memberof module:billService
+   * @param {number} id - ID de la factura.
+   * @param {Object} data - Datos a actualizar (factura y líneas).
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async updateBillFull(id, data, user) {
     try {
       const bill = await this.getBillById(id, "draft", user);
@@ -376,6 +448,17 @@ const billService = {
     }
   },
 
+  /**
+   * Edita una línea de producto en una factura (agrega o elimina).
+   * @async
+   * @function editRowToBill
+   * @memberof module:billService
+   * @param {number} billId - ID de la factura.
+   * @param {Object} rowData - Datos de la línea de producto.
+   * @param {string} action - Acción a realizar ('add' o 'delete').
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async editRowToBill(billId, rowData, action, user) {
     try {
       let result;
@@ -416,6 +499,15 @@ const billService = {
   },
 
 
+  /**
+   * Crea una factura y agrega productos asociados.
+   * @async
+   * @function createBillWithProducts
+   * @memberof module:billService
+   * @param {Object} data - Datos de la factura y productos.
+   * @param {Object} user - Usuario autenticado (db, uid, password).
+   * @returns {Promise<Object>} Objeto con statusCode, message y data.
+   */
   async createBillWithProducts(data, user) {
     try {
       const client = await partnerService.getOneClient(

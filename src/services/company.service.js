@@ -2,8 +2,21 @@
 
 const connector = require('../util/odooConector.util.js');
 
+/**
+ * Servicio para operaciones con compañías (res.company) en Odoo.
+ * @module companyService
+ */
 const companyService = {
 
+    /**
+     * Verifica si una compañía existe por su ID.
+     * @async
+     * @function companyExists
+     * @memberof module:companyService
+     * @param {number} companyId - ID de la compañía.
+     * @param {Object} user - Usuario autenticado (db, uid, password).
+     * @returns {Promise<Object>} Objeto con statusCode, message y data.
+     */
     async companyExists(companyId, user) {
         try {
             const domain = [['id', '=', companyId]];
@@ -27,9 +40,13 @@ const companyService = {
     },
 
     /**
-     * Busca una compañía por nombre
-     * @param {string} name
-     * @returns {Promise<Object|null>} Objeto de la compañía o null si no existe
+     * Busca una compañía por nombre.
+     * @async
+     * @function findCompanyByName
+     * @memberof module:companyService
+     * @param {string} name - Nombre de la compañía.
+     * @param {Object} user - Usuario autenticado (db, uid, password).
+     * @returns {Promise<Object>} Objeto con statusCode, message y data.
      */
     async findCompanyByName(name, user) {
         try {

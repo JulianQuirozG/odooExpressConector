@@ -27,7 +27,6 @@ const DbConfig = {
     async init(config) {
         try {
 
-            //pool = mysql.createPool(credenciales de);
             pool = mysql.createPool(config);
             const connection = await pool.getConnection();
             await connection.ping(); // Verifica que haya respuesta
@@ -65,6 +64,22 @@ const DbConfig = {
             return { statusCode: 500, error: true, message: 'Error executing query', data: []};
         }
     },
+
+    //Funcion para crear una transaccion
+    async trasnsaction() {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            return connection;
+        } catch (error) {
+            connection.release();
+            throw error;
+        }
+    },
+
+    //Cantidad de conexiones
+    //Manejo de transacciones
+    //
 };
 
 module.exports = DbConfig;

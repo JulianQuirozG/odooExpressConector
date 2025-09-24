@@ -91,6 +91,7 @@ MIT
 
 - 2025-09-23
   - Manejo de conexiones sin ORM,
+  - conexiones para bases de datos, ejecucion de sentencias sql en navicat
   
   - Uso de pools de conexion
   - Inserción de logs a la base de datos
