@@ -4,7 +4,7 @@ const { attachmentsController } = require('../controllers/attachements.controlle
 const { jwtAuth } = require('../middleware/Login.middleware');
 const { upload } = require('../util/multer.util');
 
-router.post('/upload', jwtAuth, upload.single('file'), attachmentsController.uploadAttachment);
-
-
+router.post('/attachments/upload', jwtAuth, upload.single('file'), attachmentsController.uploadAttachment);
+router.delete('/attachments/delete/:id', jwtAuth, attachmentsController.deleteAttachment);
+router.get('/attachments/:id', jwtAuth, attachmentsController.getAttachment);
 module.exports = router;
