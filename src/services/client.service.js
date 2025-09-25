@@ -254,7 +254,7 @@ const partnerService = {
         "category_id",
         "company_id",
       ]; // Campos que deseas traer
-
+/* 
       // Realizamos la consulta a Odoo
       const clients = await connector.executeOdooQuery("object", "execute_kw", [
         user.db,
@@ -265,6 +265,8 @@ const partnerService = {
         [domain],
         
       ]);
+      */
+      const clients = await connector.executeOdooJsQuery("res.partner", "search_read", { domain, fields });
       console.log(clients);
       // Si no obtenemos resultados, lanzamos un error 404 (Not Found)
       if (clients.success === false) {
@@ -406,6 +408,7 @@ const partnerService = {
       }
 
       // Realizamos la consulta a Odoo
+      /*
       const clients = await connector.executeOdooQuery("object", "execute_kw", [
         user.db,
         user.uid,
@@ -415,6 +418,8 @@ const partnerService = {
         [novoCliente],
         {},
       ]);
+      */
+      const clients = await connector.executeOdooJsQuery("res.partner", "create", { vals_list: [novoCliente] });
       console.log(clients);
       if (clients.success === false) {
         if (clients.error === true) {

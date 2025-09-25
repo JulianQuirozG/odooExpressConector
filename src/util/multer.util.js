@@ -4,7 +4,7 @@ const path = require('path');
 // Configuración de almacenamiento en memoria
 const storage = multer.memoryStorage();
 
-// Límite de tamaño de archivo (ejemplo: 5MB)
+// Límite de tamaño de archivo 5MB
 const limits = {
     fileSize: 5 * 1024 * 1024
 };

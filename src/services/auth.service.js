@@ -33,7 +33,7 @@ const authService = {
             const response = await connector.executeOdooQuery("common","login", args);
 
             //await LogsRepository.insertLog('common','login', args, response.data);
-
+            console.log("Respuesta de Odoo:", response.data);
             if (response.success === false) {
                 if(response.error === true){
                     return {statusCode:500, message: response.message, data: response.data };
@@ -41,7 +41,9 @@ const authService = {
                 return {statusCode:400, message: response.message, data: response.data };
             }
 
-            
+            if (!response.data) {
+                return {statusCode:400, message: 'Credenciales inválidas', data: response.data };
+            }
 
             // Generar el token JWT
             const payload = { username, db, uid: response.data, password }

@@ -4,10 +4,11 @@ const config = require('../config/config.js')
 
 const { wrapper } = require('axios-cookiejar-support');
 const tough = require('tough-cookie');
-const DbConfig = require('../config/db.js');
 const cookieJar = new tough.CookieJar();
 const client = wrapper(axios.create({ jar: cookieJar, withCredentials: true }));
 const ODOO_URL = config.odoo.url;
+const ODOO_URL_FETCH = config.odoo.url_fetch;
+const ODOO_API_KEY = config.odoo.apiKey;
 
 
 const OdooConnector = {
@@ -57,6 +58,67 @@ const OdooConnector = {
             console.error('Error en la consulta a Odoo:', error);
             return { success: false, error: true, data: error.message, message: 'Error en la consulta a Odoo' };
         }
+    },
+
+    async executeOdooJsQuery(
+        model = 'res.partner',
+        method = 'search_read',
+        args = []) {
+        try {
+            const request = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'bearer ' + ODOO_API_KEY
+                },
+                body:  JSON.stringify(args)
+
+            }
+            const response = await fetch(ODOO_URL_FETCH + '/' + model + '/' + method, request);
+            console.log('Request fetch:', request);
+
+            if (!response.ok) {
+                return { success: false, data: await response.json() };
+            }
+
+            const data = await response.json();
+            return { success: true, data: data };
+
+        } catch (error) {
+            console.error('Error en la consulta a Odoo:', error);
+            return { success: false, error: true, data: error.message, message: 'Error en la consulta a Odoo' };
+        }
+        /*try { 
+            const params = { service, method, args };
+            const { data } = await axios.post(ODOO_URL, {
+                jsonrpc: "2.0",
+                method: "call",
+                params: params,
+                id: new Date().getTime()
+            }, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            
+            if (data && data.error) {
+                const Msg =
+                    data.error?.data?.message ||
+                    data.error?.message ||
+                    data.error?.data?.debug ||
+                    'Error en la consulta a Odoo';
+
+                const error = new Error(Msg);
+                error.status = 502;
+                return { success: false, data: data.error };
+            }
+
+            return { success: true, data: data.result };
+
+        } catch (error) {
+            console.error('Error en la consulta a Odoo:', error);
+            return { success: false, error: true, data: error.message, message: 'Error en la consulta a Odoo' };
+        }
+            */
     },
 }
 
